@@ -138,7 +138,7 @@ export function FixPromptCard({ finding, analysisId, originalIndex }: FixPromptC
             onClick={submitFlag}
             className="shrink-0 px-4 text-[10px] font-[family-name:var(--font-mono)] bg-[var(--color-paper-dark)] border border-[var(--color-paper-line)] text-[var(--color-ink-light)] hover:text-[var(--color-ink)] hover:bg-[var(--color-paper-line)]/30 transition-colors uppercase tracking-wider"
           >
-            Submit
+            Teach the Teacher
           </button>
         </div>
       )}

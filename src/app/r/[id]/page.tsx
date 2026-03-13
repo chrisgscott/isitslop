@@ -107,6 +107,15 @@ export default async function ResultPage({ params }: PageProps) {
             {/* Actions — right under the grades */}
             <div className="mt-6 space-y-4">
               <CopyReportButton analysis={analysis} />
+              <div className="flex items-start gap-2 select-none" aria-hidden="true">
+                <p className="handwriting text-[var(--color-red-ink)] text-base rotate-[1.5deg] leading-[1.4]">
+                  Hand this to your AI,<br />or see me after class.
+                </p>
+                <svg width="28" height="36" viewBox="0 0 28 36" fill="none" className="shrink-0 mt-0.5">
+                  <path d="M14 34 C14 34, 12 8, 14 2" stroke="var(--color-red-ink)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                  <path d="M8 8 L14 2 L20 8" stroke="var(--color-red-ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </svg>
+              </div>
               <ShareButtons
                 url={resultUrl}
                 repoName={`${analysis.repo_owner}/${analysis.repo_name}`}
