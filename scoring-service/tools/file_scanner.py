@@ -72,6 +72,7 @@ NON_CODE_EXTENSIONS = {
     ".csv", ".env", ".ini", ".cfg",
     ".lock",
     ".svg",  # SVG files are markup, not code logic
+    ".css", ".scss", ".less",  # Stylesheets aren't code complexity
 }
 
 # Directories containing vendored/third-party code
@@ -90,6 +91,7 @@ class ScannedFile:
     is_test: bool
     is_generated: bool = False
     is_vendored: bool = False
+    is_barrel: bool = False
 
 
 SHADCN_CONTENT_MARKERS = {
@@ -126,6 +128,15 @@ def _is_shadcn_component(content: str) -> bool:
     """Detect ShadCN vendored components by content markers."""
     markers_found = sum(1 for m in SHADCN_CONTENT_MARKERS if m in content)
     return markers_found >= 2
+
+
+def _is_barrel_file(content: str) -> bool:
+    """Detect barrel/index files that only re-export from other modules."""
+    lines = [l.strip() for l in content.splitlines() if l.strip() and not l.strip().startswith('//')]
+    if not lines:
+        return False
+    export_lines = sum(1 for l in lines if l.startswith('export ') and 'from' in l)
+    return export_lines / len(lines) >= 0.7
 
 
 def scan_repo(repo_path: Path) -> ScanResult:
@@ -215,6 +226,11 @@ def scan_repo(repo_path: Path) -> ScanResult:
             is_generated=is_generated,
             is_vendored=is_vendored,
         )
+
+        # Detect barrel files (index.ts that just re-exports)
+        if item.name in {"index.ts", "index.tsx", "index.js", "index.jsx"} and _is_barrel_file(content):
+            scanned.is_barrel = True
+
         result.files.append(scanned)
         result.total_files += 1
         result.total_loc += loc

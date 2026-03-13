@@ -67,6 +67,23 @@ def test_dts_files_marked_generated(sample_repo):
     assert dts_files[0].is_generated is True
 
 
+def test_barrel_file_detected():
+    """Test that barrel/index files are properly detected."""
+    import tempfile, os
+    with tempfile.TemporaryDirectory() as tmp:
+        # Create a barrel file
+        barrel = Path(tmp) / "index.ts"
+        barrel.write_text(
+            "export { Foo } from './foo'\n"
+            "export { Bar } from './bar'\n"
+            "export { Baz } from './baz'\n"
+            "export { Qux } from './qux'\n"
+        )
+        result = scan_repo(Path(tmp))
+        barrel_files = [f for f in result.files if f.is_barrel]
+        assert len(barrel_files) == 1
+
+
 def test_migration_files_marked_generated(sample_repo):
     mig_dir = sample_repo / "migrations"
     mig_dir.mkdir()

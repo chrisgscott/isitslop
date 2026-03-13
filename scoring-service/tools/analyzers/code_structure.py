@@ -21,13 +21,17 @@ FRAMEWORK_CONVENTIONS = {
 }
 
 # Directories/paths suggesting data/content files, not logic
-DATA_PATH_PATTERNS = {"i18n", "locales", "translations", "fixtures", "seeds", "data", "mocks"}
+DATA_PATH_PATTERNS = {"i18n", "locales", "translations", "fixtures", "seeds", "data", "mocks", "schemas"}
 
 
 def _is_data_file(file: ScannedFile) -> bool:
-    """Detect data/content files that are large by nature, not by poor structure."""
+    """Detect data/content/schema files that are large by nature, not by poor structure."""
     path_parts = set(file.path.lower().split('/'))
     if path_parts & DATA_PATH_PATTERNS:
+        return True
+    # Schema/model definition files (ORM schemas, type definitions)
+    basename = file.path.split('/')[-1].lower()
+    if any(pattern in basename for pattern in ('schema.', 'models.', 'entities.', 'tables.')):
         return True
     # Large files that are mostly string literals or objects (i18n, seed data)
     if file.loc > 200:
@@ -56,7 +60,7 @@ def analyze_code_structure(files: list[ScannedFile]) -> list[dict]:
         if not _is_analyzable_code(file):
             continue
 
-        if file.loc > GOD_FILE_THRESHOLD and not _is_data_file(file):
+        if file.loc > GOD_FILE_THRESHOLD and not _is_data_file(file) and not file.is_barrel:
             findings.append({
                 "dimension": "code_structure",
                 "severity": "high",
@@ -67,7 +71,7 @@ def analyze_code_structure(files: list[ScannedFile]) -> list[dict]:
                 "fix_prompt": f"{file.path} is {file.loc} lines long. Break it into smaller, focused modules. Each file should have one clear responsibility.",
             })
 
-        max_depth = _detect_max_nesting(file.content)
+        max_depth = _detect_max_nesting(file.content, file.language)
         if max_depth >= DEEP_NESTING_THRESHOLD:
             findings.append({
                 "dimension": "code_structure",
@@ -126,13 +130,70 @@ def _has_similar_content(files: list[ScannedFile], threshold: float = 0.5) -> bo
     return False
 
 
-def _detect_max_nesting(content: str) -> int:
+# Patterns that indicate control flow nesting (brace-based languages)
+CONTROL_FLOW_OPENERS = re.compile(
+    r'^\s*(?:'
+    r'if\s*\(|'
+    r'else\s*(?:if\s*\()?\s*\{|'
+    r'for\s*\(|'
+    r'while\s*\(|'
+    r'do\s*\{|'
+    r'switch\s*\(|'
+    r'try\s*\{|'
+    r'catch\s*\(|'
+    r'finally\s*\{'
+    r')'
+)
+
+# Patterns for Python control flow (indentation-based)
+PYTHON_CONTROL_FLOW = re.compile(
+    r'^\s*(?:if |elif |else:|for |while |try:|except |finally:|with )'
+)
+
+
+def _detect_max_control_flow_nesting(content: str) -> int:
+    """Detect max control flow nesting depth, ignoring structural nesting."""
     max_depth = 0
     current_depth = 0
-    for char in content:
-        if char == '{':
+
+    for line in content.splitlines():
+        stripped = line.strip()
+
+        # Skip empty lines and comments
+        if not stripped or stripped.startswith('//') or stripped.startswith('*') or stripped.startswith('/*'):
+            continue
+
+        # Check if this line opens a control flow block
+        if CONTROL_FLOW_OPENERS.match(stripped):
             current_depth += 1
             max_depth = max(max_depth, current_depth)
-        elif char == '}':
+
+        # A line that is just "}" or "} else {" etc. closes a level
+        if stripped == '}' or stripped.startswith('} else') or stripped.startswith('} catch') or stripped.startswith('} finally'):
             current_depth = max(0, current_depth - 1)
+
     return max_depth
+
+
+def _detect_max_control_flow_nesting_python(content: str) -> int:
+    """Detect max control flow nesting for Python (indentation-based)."""
+    max_depth = 0
+
+    for line in content.splitlines():
+        if not line.strip() or line.strip().startswith('#'):
+            continue
+
+        indent = len(line) - len(line.lstrip())
+
+        if PYTHON_CONTROL_FLOW.match(line):
+            # Count nesting level based on indent relative to control flow blocks
+            current_depth = indent // 4 + 1  # rough approximation
+            max_depth = max(max_depth, current_depth)
+
+    return max_depth
+
+
+def _detect_max_nesting(content: str, language: str | None = None) -> int:
+    if language == "python":
+        return _detect_max_control_flow_nesting_python(content)
+    return _detect_max_control_flow_nesting(content)

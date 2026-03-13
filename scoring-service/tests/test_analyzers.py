@@ -115,6 +115,56 @@ class TestCodeStructure:
         assert any("nest" in f["issue"].lower() for f in findings)
 
 
+    def test_ignores_jsx_structural_nesting(self):
+        content = """function App() {
+  return (
+    <Provider>
+      <Layout>
+        <Sidebar>
+          <Nav>
+            <Item>Hello</Item>
+          </Nav>
+        </Sidebar>
+      </Layout>
+    </Provider>
+  )
+}"""
+        file = _make_file("app.tsx", content)
+        findings = analyze_code_structure([file])
+        nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
+        assert len(nesting_findings) == 0
+
+    def test_ignores_config_object_nesting(self):
+        content = """const config = {
+  theme: {
+    colors: {
+      primary: {
+        100: '#fff',
+        200: '#eee',
+        300: '#ddd',
+        dark: {
+          100: '#333',
+          200: '#222',
+        }
+      }
+    }
+  }
+}"""
+        file = _make_file("config.ts", content)
+        findings = analyze_code_structure([file])
+        nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
+        assert len(nesting_findings) == 0
+
+    def test_skips_barrel_files_for_god_file(self):
+        """Barrel files that just re-export shouldn't be flagged as god files."""
+        lines = [f"export {{ Thing{i} }} from './thing{i}'" for i in range(200)]
+        content = "\n".join(lines)
+        file = _make_file("index.ts", content)
+        file.is_barrel = True
+        findings = analyze_code_structure([file])
+        god_file_findings = [f for f in findings if "large" in f["issue"].lower()]
+        assert len(god_file_findings) == 0
+
     def test_skips_generated_files(self):
         content = "\n".join([f"const line{i} = {i};" for i in range(500)])
         file = _make_file("generated.ts", content)
