@@ -61,22 +61,22 @@ def _is_data_file(file: ScannedFile) -> bool:
     return False
 
 
-def _god_file_severity(loc: int) -> str:
-    """Scale severity by how far over the threshold a file is."""
-    if loc >= 700:
-        return "high"
+def _god_file_severity(loc: int) -> tuple[str, str]:
+    """Scale severity and description by how far over the threshold a file is."""
+    if loc >= 750:
+        return "high", "this is a real problem"
     if loc >= 500:
-        return "medium"
-    return "low"
+        return "medium", "should probably split this"
+    return "low", "barely over threshold"
 
 
-def _nesting_severity(depth: int) -> str:
-    """Scale severity by nesting depth."""
+def _nesting_severity(depth: int) -> tuple[str, str]:
+    """Scale severity and description by nesting depth."""
     if depth >= 8:
-        return "high"
+        return "high", "refactor this"
     if depth >= 6:
-        return "medium"
-    return "low"
+        return "medium", "getting hard to follow"
+    return "low", "common in real code"
 
 
 def _is_analyzable_code(file: ScannedFile) -> bool:
@@ -98,26 +98,26 @@ def analyze_code_structure(files: list[ScannedFile]) -> list[dict]:
             continue
 
         if file.loc > GOD_FILE_THRESHOLD and not _is_data_file(file) and not file.is_barrel:
-            severity = _god_file_severity(file.loc)
+            severity, context = _god_file_severity(file.loc)
             findings.append({
                 "dimension": "code_structure",
                 "severity": severity,
                 "file": file.path,
                 "line": None,
-                "issue": f"Large file ({file.loc} lines) — likely doing too much",
+                "issue": f"Large file ({file.loc} lines) — {context}",
                 "evidence": f"{file.loc} LOC, threshold is {GOD_FILE_THRESHOLD}",
                 "fix_prompt": f"{file.path} is {file.loc} lines long. Break it into smaller, focused modules. Each file should have one clear responsibility.",
             })
 
         max_depth = _detect_max_nesting(file.content, file.language)
         if max_depth >= DEEP_NESTING_THRESHOLD:
-            severity = _nesting_severity(max_depth)
+            severity, context = _nesting_severity(max_depth)
             findings.append({
                 "dimension": "code_structure",
                 "severity": severity,
                 "file": file.path,
                 "line": None,
-                "issue": f"Deep nesting detected ({max_depth} levels) — hard to read and maintain",
+                "issue": f"Deep nesting detected ({max_depth} levels) — {context}",
                 "evidence": f"Max nesting depth: {max_depth}",
                 "fix_prompt": f"{file.path} has {max_depth} levels of nesting. Use early returns, extract helper functions, or restructure conditionals to flatten the code.",
             })
