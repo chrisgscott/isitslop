@@ -61,6 +61,24 @@ def _is_data_file(file: ScannedFile) -> bool:
     return False
 
 
+def _god_file_severity(loc: int) -> str:
+    """Scale severity by how far over the threshold a file is."""
+    if loc >= 700:
+        return "high"
+    if loc >= 500:
+        return "medium"
+    return "low"
+
+
+def _nesting_severity(depth: int) -> str:
+    """Scale severity by nesting depth."""
+    if depth >= 8:
+        return "high"
+    if depth >= 6:
+        return "medium"
+    return "low"
+
+
 def _is_analyzable_code(file: ScannedFile) -> bool:
     """Return True if this file should get code-quality heuristics."""
     if file.is_test or file.is_generated or file.is_vendored:
@@ -80,9 +98,10 @@ def analyze_code_structure(files: list[ScannedFile]) -> list[dict]:
             continue
 
         if file.loc > GOD_FILE_THRESHOLD and not _is_data_file(file) and not file.is_barrel:
+            severity = _god_file_severity(file.loc)
             findings.append({
                 "dimension": "code_structure",
-                "severity": "high",
+                "severity": severity,
                 "file": file.path,
                 "line": None,
                 "issue": f"Large file ({file.loc} lines) — likely doing too much",
@@ -92,9 +111,10 @@ def analyze_code_structure(files: list[ScannedFile]) -> list[dict]:
 
         max_depth = _detect_max_nesting(file.content, file.language)
         if max_depth >= DEEP_NESTING_THRESHOLD:
+            severity = _nesting_severity(max_depth)
             findings.append({
                 "dimension": "code_structure",
-                "severity": "medium",
+                "severity": severity,
                 "file": file.path,
                 "line": None,
                 "issue": f"Deep nesting detected ({max_depth} levels) — hard to read and maintain",
