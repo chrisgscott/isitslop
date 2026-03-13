@@ -115,6 +115,21 @@ class TestCodeStructure:
         assert any("nest" in f["issue"].lower() for f in findings)
 
 
+    def test_skips_generated_files(self):
+        content = "\n".join([f"const line{i} = {i};" for i in range(500)])
+        file = _make_file("generated.ts", content)
+        file.is_generated = True
+        findings = analyze_code_structure([file])
+        assert len(findings) == 0
+
+    def test_skips_data_files_for_god_file(self):
+        content = "\n".join([f'"key{i}": "value{i}",' for i in range(500)])
+        file = _make_file("locales/en.ts", content)
+        findings = analyze_code_structure([file])
+        god_findings = [f for f in findings if "large" in f["issue"].lower()]
+        assert len(god_findings) == 0
+
+
 class TestDependencies:
     def test_detects_too_many_deps(self):
         deps = {f"dep-{i}": "^1.0.0" for i in range(65)}

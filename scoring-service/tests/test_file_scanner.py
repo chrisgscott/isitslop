@@ -56,3 +56,22 @@ def test_scan_reads_package_json(sample_repo):
     result = scan_repo(sample_repo)
     assert result.package_json is not None
     assert result.package_json["name"] == "test"
+
+
+def test_dts_files_marked_generated(sample_repo):
+    types_dir = sample_repo / "src"
+    (types_dir / "types.d.ts").write_text("declare module 'foo' { export const bar: string; }")
+    result = scan_repo(sample_repo)
+    dts_files = [f for f in result.files if f.path.endswith(".d.ts")]
+    assert len(dts_files) == 1
+    assert dts_files[0].is_generated is True
+
+
+def test_migration_files_marked_generated(sample_repo):
+    mig_dir = sample_repo / "migrations"
+    mig_dir.mkdir()
+    (mig_dir / "001_init.sql").write_text("CREATE TABLE users (id INT);")
+    result = scan_repo(sample_repo)
+    mig_files = [f for f in result.files if "migrations" in f.path]
+    assert len(mig_files) == 1
+    assert mig_files[0].is_generated is True

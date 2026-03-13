@@ -14,7 +14,7 @@ def analyze_security(files: list[ScannedFile]) -> list[dict]:
     findings = []
 
     for file in files:
-        if file.is_test:
+        if file.is_test or file.is_generated:
             continue
 
         if file.path == ".env" or file.path.endswith("/.env"):

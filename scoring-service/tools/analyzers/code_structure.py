@@ -4,13 +4,38 @@ from tools.file_scanner import ScannedFile, NON_CODE_EXTENSIONS
 GOD_FILE_THRESHOLD = 400
 DEEP_NESTING_THRESHOLD = 5
 
-# Next.js/framework convention filenames — duplicates of these are expected
+# Framework convention filenames — duplicates of these are expected
 FRAMEWORK_CONVENTIONS = {
+    # Next.js
     "index", "page", "layout", "route", "loading", "error",
     "actions", "middleware", "template", "not-found", "globals",
+    # Remix
+    "loader", "action", "meta",
+    # Common patterns
     "config", "utils", "helpers", "types", "constants",
     "mod", "lib", "main", "init", "__init__",
+    "schema", "model", "models", "migration",
+    "seed", "fixture", "fixtures",
+    # Monorepo files that repeat per workspace
+    "package", "tsconfig", "eslintrc", "prettierrc",
 }
+
+# Directories/paths suggesting data/content files, not logic
+DATA_PATH_PATTERNS = {"i18n", "locales", "translations", "fixtures", "seeds", "data", "mocks"}
+
+
+def _is_data_file(file: ScannedFile) -> bool:
+    """Detect data/content files that are large by nature, not by poor structure."""
+    path_parts = set(file.path.lower().split('/'))
+    if path_parts & DATA_PATH_PATTERNS:
+        return True
+    # Large files that are mostly string literals or objects (i18n, seed data)
+    if file.loc > 200:
+        lines = file.content.splitlines()
+        string_lines = sum(1 for l in lines if l.strip().startswith('"') or l.strip().startswith("'"))
+        if string_lines / max(len(lines), 1) > 0.5:
+            return True
+    return False
 
 
 def _is_analyzable_code(file: ScannedFile) -> bool:
@@ -31,7 +56,7 @@ def analyze_code_structure(files: list[ScannedFile]) -> list[dict]:
         if not _is_analyzable_code(file):
             continue
 
-        if file.loc > GOD_FILE_THRESHOLD:
+        if file.loc > GOD_FILE_THRESHOLD and not _is_data_file(file):
             findings.append({
                 "dimension": "code_structure",
                 "severity": "high",
