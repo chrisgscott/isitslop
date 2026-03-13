@@ -22,7 +22,6 @@ interface VerdictProps {
 export function Verdict({ verdict }: VerdictProps) {
   const lines = verdict.split('\n').filter(Boolean)
 
-  // Separate the main verdict from dimension commentaries
   const mainLines: string[] = []
   const dimLines: { label: string; text: string }[] = []
 
@@ -42,27 +41,33 @@ export function Verdict({ verdict }: VerdictProps) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.6, delay: 1.2 }}
-      className="max-w-2xl mx-auto space-y-8"
+      transition={{ duration: 0.6, delay: 1.4 }}
+      className="space-y-6"
     >
-      {/* Main verdict */}
-      <div className="space-y-4">
+      <p className="text-xs tracking-[0.2em] uppercase text-[var(--color-ink-faint)]">
+        Teacher&apos;s Comments
+      </p>
+
+      {/* Main verdict in handwriting */}
+      <div className="space-y-3 py-2">
         {mainLines.map((line, i) => (
-          <p key={i} className="text-lg text-zinc-300 leading-relaxed">
+          <p key={i} className="handwriting text-2xl text-[var(--color-blue-ink)] leading-relaxed">
             {line}
           </p>
         ))}
       </div>
 
-      {/* Dimension commentaries */}
+      {/* Dimension notes */}
       {dimLines.length > 0 && (
-        <div className="border-t border-[#1a1a1a] pt-6 space-y-3">
+        <div className="space-y-2.5 pt-2">
           {dimLines.map((dim, i) => (
-            <div key={i} className="flex gap-3 text-sm">
-              <span className="font-mono text-zinc-600 uppercase text-xs tracking-wider shrink-0 w-28 pt-0.5">
-                {dim.label}
+            <div key={i} className="flex gap-2">
+              <span className="text-sm text-[var(--color-ink-faint)] italic shrink-0">
+                {dim.label}:
               </span>
-              <span className="text-zinc-500">{dim.text}</span>
+              <span className="handwriting text-lg text-[var(--color-blue-ink)]">
+                {dim.text}
+              </span>
             </div>
           ))}
         </div>

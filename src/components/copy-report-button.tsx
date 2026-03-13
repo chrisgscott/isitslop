@@ -17,7 +17,7 @@ function buildReport(analysis: Analysis): string {
 
   lines.push(`# IsItSlop Report: ${analysis.repo_owner}/${analysis.repo_name}`)
   lines.push(``)
-  lines.push(`**Slop Score: ${analysis.slop_score}/100**`)
+  lines.push(`**Overall Grade: ${100 - (analysis.slop_score ?? 0)}/100**`)
   lines.push(``)
 
   if (analysis.scores) {
@@ -58,7 +58,7 @@ function buildReport(analysis: Analysis): string {
   }
 
   lines.push(`---`)
-  lines.push(`Report from isitslop.co — go fix your shit.`)
+  lines.push(`Report from isitslop.co — see me after class.`)
 
   return lines.join('\n')
 }
@@ -80,9 +80,9 @@ export function CopyReportButton({ analysis }: CopyReportButtonProps) {
   return (
     <button
       onClick={handleCopy}
-      className="w-full max-w-md mx-auto block px-6 py-4 bg-[#22ff44] text-black font-bold rounded-none hover:bg-[#1de83d] transition-all text-sm font-mono uppercase tracking-wider"
+      className="w-full max-w-sm mx-auto block px-6 py-3.5 bg-[var(--color-ink)] text-[var(--color-paper)] text-sm tracking-[0.15em] uppercase hover:bg-[var(--color-red-ink)] transition-colors"
     >
-      {copied ? 'Copied. Now go paste it.' : 'Copy report for your AI'}
+      {copied ? 'Copied. Now hand it to your AI.' : 'Copy report card for your AI'}
     </button>
   )
 }

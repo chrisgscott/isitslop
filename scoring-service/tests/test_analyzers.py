@@ -107,6 +107,38 @@ class TestSecurity:
         findings = analyze_security([file])
         assert len(findings) == 0
 
+    def test_skips_e2e_setup_scripts(self):
+        file = ScannedFile(
+            path="scripts/setup-e2e.sh", extension=".sh", language="bash",
+            loc=40, content='PASSWORD="${RANDOM_BASE}Aa1@"\nPASSWORD="$GENERATED_PASSWORD"',
+            is_test=False,
+        )
+        findings = analyze_security([file])
+        assert len(findings) == 0
+
+    def test_skips_shell_variable_passwords(self):
+        file = ScannedFile(
+            path="scripts/deploy.sh", extension=".sh", language="bash",
+            loc=10, content='password="$DB_PASSWORD"',
+            is_test=False,
+        )
+        findings = analyze_security([file])
+        assert len(findings) == 0
+
+    def test_skips_algolia_keys_in_docusaurus(self):
+        file = _make_file(
+            "docs/docusaurus.config.js",
+            'apiKey: "b2ec302e9880e8979ad6a1234567890"',
+            ext=".js",
+        )
+        findings = analyze_security([file])
+        assert len(findings) == 0
+
+    def test_still_catches_real_hardcoded_passwords(self):
+        file = _make_file("config.ts", 'const password = "supersecret123"')
+        findings = analyze_security([file])
+        assert any("password" in f["issue"].lower() for f in findings)
+
 
 class TestCodeStructure:
     def test_detects_god_file(self):

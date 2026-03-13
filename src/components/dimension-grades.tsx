@@ -4,21 +4,21 @@ import { motion } from 'motion/react'
 import type { DimensionScores, DimensionKey, LetterGrade } from '@/types/analysis'
 
 const DIMENSION_LABELS: Record<DimensionKey, string> = {
-  error_handling: 'Errors',
-  test_coverage: 'Tests',
-  documentation: 'Docs',
+  error_handling: 'Error Handling',
+  test_coverage: 'Test Coverage',
+  documentation: 'Documentation',
   security: 'Security',
-  code_structure: 'Structure',
-  dependencies: 'Deps',
+  code_structure: 'Code Structure',
+  dependencies: 'Dependencies',
 }
 
-function gradeColor(grade: LetterGrade): string {
+function gradeClass(grade: LetterGrade): string {
   switch (grade) {
-    case 'A': return '#22ff44'
-    case 'B': return '#a3ff12'
-    case 'C': return '#facc15'
-    case 'D': return '#fb923c'
-    case 'F': return '#ef4444'
+    case 'A': return 'grade-a'
+    case 'B': return 'grade-b'
+    case 'C': return 'grade-c'
+    case 'D': return 'grade-d'
+    case 'F': return 'grade-f'
   }
 }
 
@@ -30,37 +30,38 @@ export function DimensionGrades({ scores }: DimensionGradesProps) {
   const dimensions = Object.entries(scores) as [DimensionKey, { score: number; grade: LetterGrade; findings_count: number }][]
 
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-6 gap-px bg-[#1a1a1a] border border-[#1a1a1a] max-w-2xl mx-auto">
-      {dimensions.map(([key, data], i) => {
-        const color = gradeColor(data.grade)
-        return (
-          <motion.div
-            key={key}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.6 + i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-            className="bg-[#0a0a0a] p-4 text-center relative group"
-          >
-            {/* Top accent line */}
-            <div
-              className="absolute top-0 left-0 right-0 h-px"
-              style={{ backgroundColor: color, opacity: 0.5 }}
-            />
-            <div
-              className="text-3xl font-black leading-none"
-              style={{ color }}
-            >
-              {data.grade}
-            </div>
-            <div className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider mt-2">
-              {DIMENSION_LABELS[key]}
-            </div>
-            <div className="text-[10px] font-mono text-zinc-700 mt-0.5">
-              {data.score}/100
-            </div>
-          </motion.div>
-        )
-      })}
+    <div>
+      {/* Table header */}
+      <div className="flex items-center text-xs tracking-[0.2em] uppercase text-[var(--color-ink-faint)] border-b border-[var(--color-paper-line)] pb-2 mb-1">
+        <div className="flex-1">Subject</div>
+        <div className="w-16 text-center">Grade</div>
+        <div className="w-14 text-center">Score</div>
+        <div className="w-14 text-center">Issues</div>
+      </div>
+
+      {/* Grade rows */}
+      {dimensions.map(([key, data], i) => (
+        <motion.div
+          key={key}
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.8 + i * 0.07 }}
+          className="flex items-center py-3 border-b border-[var(--color-paper-line)]/50"
+        >
+          <div className="flex-1 text-base">
+            {DIMENSION_LABELS[key]}
+          </div>
+          <div className={`w-16 text-center text-2xl font-bold ${gradeClass(data.grade)}`}>
+            {data.grade}
+          </div>
+          <div className="w-14 text-center text-sm font-[family-name:var(--font-mono)] text-[var(--color-ink-light)]">
+            {data.score}
+          </div>
+          <div className="w-14 text-center text-sm font-[family-name:var(--font-mono)] text-[var(--color-ink-light)]">
+            {data.findings_count || '\u2014'}
+          </div>
+        </motion.div>
+      ))}
     </div>
   )
 }

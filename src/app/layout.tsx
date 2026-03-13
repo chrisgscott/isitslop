@@ -1,17 +1,23 @@
 import type { Metadata } from "next";
-import { Darker_Grotesque, IBM_Plex_Mono } from "next/font/google";
+import { Instrument_Serif, Caveat, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-const display = Darker_Grotesque({
-  variable: "--font-display",
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-serif",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
+  weight: "400",
 });
 
-const mono = IBM_Plex_Mono({
+const caveat = Caveat({
+  variable: "--font-hand",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -39,9 +45,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${display.variable} ${mono.variable} antialiased`}
+        className={`${instrumentSerif.variable} ${caveat.variable} ${ibmPlexMono.variable} antialiased`}
       >
-        <div className="noise" />
         {children}
       </body>
     </html>

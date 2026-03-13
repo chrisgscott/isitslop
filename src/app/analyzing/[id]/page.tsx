@@ -6,16 +6,16 @@ import { supabase } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'motion/react'
 
 const SNARKY_MESSAGES = [
-  "Downloading your masterpiece...",
-  "Counting console.logs...",
+  "Collecting your homework...",
+  "Checking if you showed your work...",
   "Looking for tests... any tests...",
-  "Checking if .env is committed (please no)...",
-  "Measuring the spaghetti...",
-  "Asking GPT what it thinks of GPT's code...",
+  "Checking if .env is in your backpack (please no)...",
+  "The teacher is grading your paper...",
   "Searching for error handling...",
-  "Calculating your shame score...",
-  "Reviewing 47 files your AI hallucinated...",
-  "Almost done roasting you...",
+  "Red pen is running low...",
+  "Reviewing what your AI turned in for you...",
+  "Preparing your report card...",
+  "This one's going on the fridge. Not in a good way.",
 ]
 
 export default function AnalyzingPage() {
@@ -69,9 +69,11 @@ export default function AnalyzingPage() {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center px-4">
         <div className="text-center space-y-6">
-          <div className="text-6xl font-black text-red-400">ERR</div>
-          <p className="text-red-400 font-mono text-sm">{error}</p>
-          <a href="/" className="text-zinc-500 hover:text-[#22ff44] font-mono text-sm transition-colors">
+          <p className="text-2xl italic text-[var(--color-red-ink)]">
+            Something went wrong.
+          </p>
+          <p className="text-sm text-[var(--color-ink-light)]">{error}</p>
+          <a href="/" className="text-sm text-[var(--color-ink-light)] hover:text-[var(--color-red-ink)] italic transition-colors">
             &larr; Try another repo
           </a>
         </div>
@@ -81,11 +83,14 @@ export default function AnalyzingPage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4">
-      <div className="text-center space-y-12">
-        {/* Pulsing dot */}
-        <div className="flex items-center justify-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-[#22ff44] animate-pulse" />
-          <span className="text-xs font-mono text-zinc-600 uppercase tracking-widest">Analyzing</span>
+      <div className="text-center space-y-10 max-w-md">
+        <div className="space-y-2">
+          <p className="text-xs tracking-[0.3em] uppercase text-[var(--color-ink-faint)]">
+            Please wait
+          </p>
+          <p className="text-2xl italic text-[var(--color-ink-light)]">
+            Your report card is being prepared...
+          </p>
         </div>
 
         {/* Snarky message with crossfade */}
@@ -93,25 +98,27 @@ export default function AnalyzingPage() {
           <AnimatePresence mode="wait">
             <motion.p
               key={messageIndex}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3 }}
-              className="text-lg text-zinc-400 font-mono"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="handwriting text-xl text-[var(--color-blue-ink)]"
             >
               {SNARKY_MESSAGES[messageIndex]}
             </motion.p>
           </AnimatePresence>
         </div>
 
-        {/* Minimal progress bar */}
-        <div className="w-48 h-px bg-[#222] mx-auto overflow-hidden">
-          <motion.div
-            className="h-full bg-[#22ff44]/50"
-            initial={{ x: '-100%' }}
-            animate={{ x: '100%' }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-          />
+        {/* Simple animated ellipsis */}
+        <div className="flex justify-center gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="w-1.5 h-1.5 rounded-full bg-[var(--color-ink-faint)]"
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+            />
+          ))}
         </div>
       </div>
     </main>

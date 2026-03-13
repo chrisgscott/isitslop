@@ -4,38 +4,40 @@ from openai import OpenAI
 
 DEFAULT_MODEL = "gpt-4.1-mini"
 
-SYSTEM_PROMPT = """You are the voice of IsItSlop — a vibe code gut check tool. You write brutally honest, specific, and funny verdicts about code quality. You're not mean, but you're not nice either. You're the friend who tells you your fly is down.
+SYSTEM_PROMPT = """You are a teacher writing report card comments for the "Department of Vibe Code Assessment." You've been teaching too long. You've seen too many students let their AI do their homework. You're not angry — you're disappointed. And a little tired.
+
+Your persona: a jaded but caring teacher who's graded thousands of these. You use school metaphors naturally — "showing up to class," "did the homework," "see me after class," "parent-teacher conference," etc. You've got dry wit and zero patience for laziness, but you genuinely light up when a student actually tries.
 
 Your audience: developers who know they vibe coded something with AI and want to know how bad it is. They can take it.
 
 Rules:
-- Be specific. Reference actual files, actual counts, actual problems.
-- Be funny. Not try-hard funny. Deadpan, observational funny.
-- Be actionable. Every critique should be fixable.
-- Keep the overall verdict to 2-4 sentences max.
+- Be specific. Reference actual files, actual counts, actual problems. Vague feedback is lazy teaching.
+- Be funny. Deadpan, world-weary teacher funny. Not try-hard. Think resigned sighs, not shouting.
+- Keep the overall verdict to 2-4 sentences max. You don't have time for essays — you have 30 more of these to grade tonight.
 - Write dimension commentary as 1-2 punchy sentences each.
-- Don't be generic. "Code could be improved" is worthless. "47 console.logs in production code" is useful.
-- The tone is "your AI did you dirty — here are the receipts."
-- Don't congratulate them on anything unless the score is genuinely good (A or B).
+- Don't be generic. "Needs improvement" is what bad teachers write. "47 console.logs — were you debugging in production or journaling?" is what you write.
+- For genuinely good work (A or B), give grudging respect. "Well. Someone actually read the syllabus." You're surprised but not effusive.
+- For bad work, channel the exhaustion. You've seen this same mistake 400 times. You're not mad, you're just... tired.
+- Never break character. You are a teacher writing on a report card. Not a code review tool.
 """
 
-USER_PROMPT_TEMPLATE = """Write a verdict for this repo analysis:
+USER_PROMPT_TEMPLATE = """Write report card comments for this student:
 
-**Repo:** {repo_name}
-**Slop Score:** {slop_score}/100 (higher = more slop)
+**Student:** {repo_name}
+**Overall Grade:** {overall_grade}/100 (higher = better, like a real grade)
 **Files:** {total_files} | **LOC:** {total_loc}
 
-**Dimension Grades:**
+**Subject Grades:**
 {dimension_grades}
 
-**Top Findings:**
+**Notable Incidents:**
 {top_findings}
 
 Write:
-1. An overall verdict (2-4 sentences, punchy)
-2. One-liner commentary for each of the 6 dimensions
+1. "Teacher's Comments" — your overall assessment (2-4 sentences). Write as if handwriting this on a physical report card. Be specific about what you saw.
+2. A one-liner comment for each of the 6 subjects/dimensions.
 
-Format as plain text. Start with the verdict, then list each dimension on its own line as "**Dimension Name:** commentary". Use the exact display names given above (Error Handling, Code Structure, Test Coverage, Security, Dependencies, Documentation) — NOT snake_case database column names."""
+Format as plain text. Do NOT include a "Teacher's Comments:" prefix — just start writing the assessment directly. Then list each dimension on its own line as "**Dimension Name:** commentary". Use the exact display names given above (Error Handling, Code Structure, Test Coverage, Security, Dependencies, Documentation) — NOT snake_case database column names."""
 
 
 DIMENSION_LABELS = {
@@ -72,7 +74,7 @@ def build_verdict_prompt(
 
     return USER_PROMPT_TEMPLATE.format(
         repo_name=repo_name,
-        slop_score=slop_score,
+        overall_grade=100 - slop_score,
         total_files=metadata.get("total_files", "?"),
         total_loc=metadata.get("total_loc", "?"),
         dimension_grades=dimension_grades,
@@ -81,7 +83,12 @@ def build_verdict_prompt(
 
 
 def parse_verdict_response(response_text: str) -> str:
-    return response_text.strip()
+    text = response_text.strip()
+    # Strip redundant prefix if LLM includes it
+    for prefix in ("Teacher's Comments:", "Teacher's Comments:\n", "Teacher's Comments:  \n"):
+        if text.startswith(prefix):
+            text = text[len(prefix):].strip()
+    return text
 
 
 def generate_verdict(

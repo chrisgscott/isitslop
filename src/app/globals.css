@@ -1,68 +1,93 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-display);
+  --font-sans: var(--font-serif);
   --font-mono: var(--font-mono);
-  --color-slop-green: #22ff44;
-  --color-slop-lime: #a3ff12;
-  --color-slop-yellow: #facc15;
-  --color-slop-orange: #fb923c;
-  --color-slop-red: #ef4444;
-  --color-surface: #0a0a0a;
-  --color-surface-raised: #111111;
-  --color-surface-border: #1a1a1a;
+
+  --color-paper: #faf6ee;
+  --color-paper-dark: #f0e9da;
+  --color-paper-line: #d4c5b0;
+  --color-ink: #2c2418;
+  --color-ink-light: #8b7e6a;
+  --color-ink-faint: #b8a990;
+  --color-red-ink: #c41e3a;
+  --color-blue-ink: #1a3a6a;
+  --color-green-ink: #2d6a4f;
+  --color-orange-ink: #c4621e;
+  --color-amber-ink: #b8860b;
 }
 
 body {
-  background-color: var(--color-surface);
-  color: #e4e4e7;
-  font-family: var(--font-display), system-ui, sans-serif;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
 }
 
-/* Grain texture overlay */
-.noise {
-  position: fixed;
-  inset: 0;
+/* Subtle ruled lines background */
+.ruled-bg {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 31px,
+    var(--color-paper-line) 31px,
+    var(--color-paper-line) 32px
+  );
+  background-position: 0 8px;
+}
+
+/* Stamp effect */
+@keyframes stamp-land {
+  0% { transform: rotate(var(--stamp-rotate)) scale(1.8); opacity: 0; }
+  60% { transform: rotate(var(--stamp-rotate)) scale(0.95); opacity: 1; }
+  80% { transform: rotate(var(--stamp-rotate)) scale(1.03); }
+  100% { transform: rotate(var(--stamp-rotate)) scale(1); opacity: 1; }
+}
+
+.stamp {
+  --stamp-rotate: 7deg;
+  animation: stamp-land 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: 0.3s;
+  opacity: 0;
+}
+
+/* Handwriting style */
+.handwriting {
+  font-family: var(--font-hand), cursive;
+  line-height: 1.4;
+}
+
+/* Report card section divider */
+.rc-divider {
+  border: none;
+  border-top: 1px solid var(--color-paper-line);
+  margin: 2rem 0;
+}
+
+/* Red underline for emphasis */
+.red-underline {
+  text-decoration: underline;
+  text-decoration-color: var(--color-red-ink);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+/* Grade colors */
+.grade-a { color: var(--color-green-ink); }
+.grade-b { color: var(--color-blue-ink); }
+.grade-c { color: var(--color-amber-ink); }
+.grade-d { color: var(--color-orange-ink); }
+.grade-f { color: var(--color-red-ink); }
+
+/* Coffee ring stain — easter egg */
+.coffee-ring {
+  position: absolute;
+  width: 110px;
+  height: 115px;
+  border-radius: 50%;
+  border: 3px solid rgba(139, 90, 43, 0.12);
+  box-shadow:
+    inset 0 0 6px rgba(139, 90, 43, 0.06),
+    0 0 4px 1px rgba(139, 90, 43, 0.04);
   pointer-events: none;
-  z-index: 9999;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
-}
-
-/* Score glow animation */
-@keyframes score-glow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-.score-glow {
-  animation: score-glow 3s ease-in-out infinite;
-}
-
-/* Typing cursor blink */
-@keyframes cursor-blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-
-.cursor-blink::after {
-  content: '█';
-  animation: cursor-blink 1s step-end infinite;
-  margin-left: 2px;
-}
-
-/* Severity tag styles */
-.severity-critical {
-  --severity-color: var(--color-slop-red);
-}
-.severity-high {
-  --severity-color: var(--color-slop-orange);
-}
-.severity-medium {
-  --severity-color: var(--color-slop-yellow);
-}
-.severity-low {
-  --severity-color: #71717a;
+  transform: rotate(12deg);
 }
