@@ -1,0 +1,165 @@
+import json
+from dataclasses import dataclass, field
+from pathlib import Path
+
+SKIP_DIRS = {
+    "node_modules", "dist", "build", ".next", "vendor", "__pycache__",
+    ".git", ".svn", ".hg", "coverage", ".nyc_output", ".cache",
+    ".turbo", ".vercel", ".netlify", "out", "target", "bin", "obj",
+    ".tox", ".mypy_cache", ".pytest_cache", "venv", ".venv", "env",
+}
+
+BINARY_EXTENSIONS = {
+    ".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg", ".bmp", ".webp",
+    ".woff", ".woff2", ".ttf", ".eot", ".otf",
+    ".mp3", ".mp4", ".wav", ".avi", ".mov",
+    ".zip", ".tar", ".gz", ".rar", ".7z",
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+    ".pyc", ".pyo", ".so", ".dll", ".dylib", ".exe",
+}
+
+LOCK_FILES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb"}
+
+LANGUAGE_MAP = {
+    ".ts": "typescript", ".tsx": "typescript",
+    ".js": "javascript", ".jsx": "javascript", ".mjs": "javascript", ".cjs": "javascript",
+    ".py": "python",
+    ".go": "go",
+    ".rs": "rust",
+    ".java": "java",
+    ".rb": "ruby",
+    ".php": "php",
+    ".cs": "csharp",
+    ".cpp": "cpp", ".cc": "cpp", ".c": "c", ".h": "c",
+    ".swift": "swift",
+    ".kt": "kotlin",
+    ".css": "css", ".scss": "scss", ".less": "less",
+    ".html": "html", ".htm": "html",
+    ".json": "json",
+    ".yaml": "yaml", ".yml": "yaml",
+    ".md": "markdown",
+    ".sql": "sql",
+    ".sh": "shell", ".bash": "shell", ".zsh": "shell",
+}
+
+TEST_PATTERNS = {
+    ".test.", ".spec.", "_test.", "_spec.",
+    "test_", "spec_",
+}
+
+MAX_FILES = 10_000
+
+
+@dataclass
+class ScannedFile:
+    path: str
+    extension: str
+    language: str | None
+    loc: int
+    content: str
+    is_test: bool
+
+
+@dataclass
+class ScanResult:
+    files: list[ScannedFile] = field(default_factory=list)
+    total_files: int = 0
+    total_loc: int = 0
+    languages: dict[str, float] = field(default_factory=dict)
+    primary_language: str = "unknown"
+    package_json: dict | None = None
+    has_readme: bool = False
+    readme_content: str = ""
+    has_lock_file: bool = False
+
+
+def _is_test_file(path: str) -> bool:
+    name = Path(path).name.lower()
+    parent = Path(path).parent.name.lower()
+    if parent in {"test", "tests", "__tests__", "spec", "specs"}:
+        return True
+    return any(pattern in name for pattern in TEST_PATTERNS)
+
+
+def scan_repo(repo_path: Path) -> ScanResult:
+    """Single-pass walk of the repo, collecting all metrics."""
+    result = ScanResult()
+    lang_loc: dict[str, int] = {}
+
+    for item in _walk_files(repo_path):
+        if result.total_files >= MAX_FILES:
+            break
+
+        rel_path = str(item.relative_to(repo_path))
+        ext = item.suffix.lower()
+
+        # Skip binaries
+        if ext in BINARY_EXTENSIONS:
+            continue
+
+        # Track lock files
+        if item.name in LOCK_FILES:
+            result.has_lock_file = True
+
+        # Try to read file
+        try:
+            content = item.read_text(errors="ignore")
+        except (OSError, UnicodeDecodeError):
+            continue
+
+        loc = len(content.splitlines())
+        language = LANGUAGE_MAP.get(ext)
+        is_test = _is_test_file(rel_path)
+
+        # Track package.json
+        if item.name == "package.json" and item.parent == repo_path:
+            try:
+                result.package_json = json.loads(content)
+            except json.JSONDecodeError:
+                pass
+
+        # Track README
+        if item.name.lower().startswith("readme"):
+            result.has_readme = True
+            result.readme_content = content
+
+        scanned = ScannedFile(
+            path=rel_path,
+            extension=ext,
+            language=language,
+            loc=loc,
+            content=content,
+            is_test=is_test,
+        )
+        result.files.append(scanned)
+        result.total_files += 1
+        result.total_loc += loc
+
+        if language:
+            lang_loc[language] = lang_loc.get(language, 0) + loc
+
+    total_code_loc = sum(lang_loc.values()) or 1
+    result.languages = {
+        lang: round(loc / total_code_loc, 2)
+        for lang, loc in sorted(lang_loc.items(), key=lambda x: -x[1])
+    }
+    if result.languages:
+        result.primary_language = next(iter(result.languages))
+
+    return result
+
+
+def _walk_files(root: Path):
+    """Walk directory tree, skipping ignored directories."""
+    try:
+        entries = sorted(root.iterdir())
+    except PermissionError:
+        return
+
+    for entry in entries:
+        if entry.is_dir():
+            if entry.name in SKIP_DIRS or entry.name.startswith("."):
+                continue
+            yield from _walk_files(entry)
+        elif entry.is_file():
+            yield entry
