@@ -145,6 +145,11 @@ CONTROL_FLOW_OPENERS = re.compile(
     r')'
 )
 
+# Single-line control flow (no block opened) — e.g. "if (x) return y;"
+SINGLE_LINE_CF = re.compile(
+    r'^\s*(?:if|else if|for|while)\s*\(.*\)\s*(?:return|continue|break|throw)\b.*;?\s*$'
+)
+
 # Patterns for Python control flow (indentation-based)
 PYTHON_CONTROL_FLOW = re.compile(
     r'^\s*(?:if |elif |else:|for |while |try:|except |finally:|with )'
@@ -165,6 +170,9 @@ def _detect_max_control_flow_nesting(content: str) -> int:
 
         # Check if this line opens a control flow block
         if CONTROL_FLOW_OPENERS.match(stripped):
+            # Skip single-line statements like "if (x) return y;" — no block opened
+            if SINGLE_LINE_CF.match(stripped):
+                continue
             current_depth += 1
             max_depth = max(max_depth, current_depth)
 

@@ -155,6 +155,20 @@ class TestCodeStructure:
         nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
         assert len(nesting_findings) == 0
 
+    def test_ignores_single_line_early_returns(self):
+        """Single-line if statements (early returns/guards) should not count as nesting."""
+        content = """function formatBytes(bytes) {
+  if (!bytes) return "—";
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
+}"""
+        file = _make_file("utils.ts", content)
+        findings = analyze_code_structure([file])
+        nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
+        assert len(nesting_findings) == 0
+
     def test_skips_barrel_files_for_god_file(self):
         """Barrel files that just re-export shouldn't be flagged as god files."""
         lines = [f"export {{ Thing{i} }} from './thing{i}'" for i in range(200)]
