@@ -42,6 +42,13 @@ class TestErrorHandling:
         findings = analyze_error_handling([file])
         assert len(findings) == 0
 
+    def test_ignores_catch_inside_string_literal(self):
+        """Pattern matches inside string literals should be ignored."""
+        content = '"Searching for error handling (found: catch(e) {})..."'
+        file = _make_file("messages.ts", content)
+        findings = analyze_error_handling([file])
+        assert len(findings) == 0
+
 
 class TestTestCoverage:
     def test_detects_no_tests(self):

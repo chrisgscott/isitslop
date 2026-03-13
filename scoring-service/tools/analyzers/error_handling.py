@@ -7,6 +7,20 @@ CONSOLE_LOG = re.compile(r'\bconsole\.log\b')
 
 CONSOLE_LOG_THRESHOLD = 5
 
+# Pattern to check if a match position is inside a string literal
+STRING_CONTEXT = re.compile(r'''["'`].*catch\s*\(''')
+
+
+def _match_is_in_string(content: str, match_start: int) -> bool:
+    """Check if a regex match is inside a string literal on its line."""
+    line_start = content.rfind('\n', 0, match_start) + 1
+    line_prefix = content[line_start:match_start]
+    # If there's an odd number of quotes before the match on this line, it's inside a string
+    for quote in ('"', "'", '`'):
+        if line_prefix.count(quote) % 2 == 1:
+            return True
+    return False
+
 
 def analyze_error_handling(files: list[ScannedFile]) -> list[dict]:
     findings = []
@@ -18,6 +32,8 @@ def analyze_error_handling(files: list[ScannedFile]) -> list[dict]:
             continue
 
         for match in EMPTY_CATCH.finditer(file.content):
+            if _match_is_in_string(file.content, match.start()):
+                continue
             line_num = file.content[:match.start()].count('\n') + 1
             findings.append({
                 "dimension": "error_handling",
@@ -30,6 +46,8 @@ def analyze_error_handling(files: list[ScannedFile]) -> list[dict]:
             })
 
         for match in CATCH_ONLY_CONSOLE.finditer(file.content):
+            if _match_is_in_string(file.content, match.start()):
+                continue
             line_num = file.content[:match.start()].count('\n') + 1
             findings.append({
                 "dimension": "error_handling",
