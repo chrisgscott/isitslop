@@ -6,11 +6,13 @@ import { FixPromptCard } from './fix-prompt-card'
 
 interface FindingsListProps {
   findings: Finding[]
+  analysisId: string
 }
 
-export function FindingsList({ findings }: FindingsListProps) {
+export function FindingsList({ findings, analysisId }: FindingsListProps) {
   const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 }
-  const sorted = [...findings].sort(
+  const indexed = findings.map((f, i) => ({ ...f, originalIndex: i }))
+  const sorted = [...indexed].sort(
     (a, b) => (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4)
   )
 
@@ -31,8 +33,13 @@ export function FindingsList({ findings }: FindingsListProps) {
         <div className="flex-1 border-t border-[var(--color-paper-line)]" />
       </div>
       <div className="space-y-4">
-        {sorted.map((finding, i) => (
-          <FixPromptCard key={i} finding={finding} />
+        {sorted.map((finding) => (
+          <FixPromptCard
+            key={finding.originalIndex}
+            finding={finding}
+            analysisId={analysisId}
+            originalIndex={finding.originalIndex}
+          />
         ))}
       </div>
     </motion.div>

@@ -123,7 +123,7 @@ export default async function ResultPage({ params }: PageProps) {
         {/* Findings / Areas for Improvement */}
         {analysis.receipts && analysis.receipts.length > 0 && (
           <section className="py-8 border-t border-[var(--color-paper-line)]">
-            <FindingsList findings={analysis.receipts} />
+            <FindingsList findings={analysis.receipts} analysisId={analysis.id} />
           </section>
         )}
 
