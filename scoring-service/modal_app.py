@@ -1,11 +1,17 @@
 import modal
 import os
+import sys
+
+# Add /root to path for Modal container (tools are at /root/tools)
+if "/root" not in sys.path:
+    sys.path.insert(0, "/root")
 
 app = modal.App("isitslop-scoring")
 
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install_from_requirements("requirements.txt")
+    .add_local_dir("tools", remote_path="/root/tools")
 )
 
 

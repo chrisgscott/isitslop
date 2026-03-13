@@ -12,7 +12,7 @@ def analyze_error_handling(files: list[ScannedFile]) -> list[dict]:
     findings = []
 
     for file in files:
-        if file.is_test or not file.language:
+        if file.is_test or file.is_generated or file.is_vendored or not file.language:
             continue
 
         for match in EMPTY_CATCH.finditer(file.content):

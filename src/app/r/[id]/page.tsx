@@ -5,6 +5,7 @@ import { DimensionGrades } from '@/components/dimension-grades'
 import { Verdict } from '@/components/verdict'
 import { FindingsList } from '@/components/findings-list'
 import { ShareButtons } from '@/components/share-buttons'
+import { CopyReportButton } from '@/components/copy-report-button'
 import type { Analysis } from '@/types/analysis'
 import type { Metadata } from 'next'
 
@@ -68,6 +69,8 @@ export default async function ResultPage({ params }: PageProps) {
         <SlopScore score={analysis.slop_score!} />
         <DimensionGrades scores={analysis.scores!} />
         <Verdict verdict={analysis.verdict!} />
+
+        <CopyReportButton analysis={analysis} />
 
         <ShareButtons
           url={resultUrl}

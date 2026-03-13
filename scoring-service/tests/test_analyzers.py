@@ -117,7 +117,7 @@ class TestCodeStructure:
 
 class TestDependencies:
     def test_detects_too_many_deps(self):
-        deps = {f"dep-{i}": "^1.0.0" for i in range(50)}
+        deps = {f"dep-{i}": "^1.0.0" for i in range(65)}
         pkg = {"dependencies": deps, "devDependencies": {}}
         findings = analyze_dependencies(pkg, total_loc=500)
         assert any("dependencies" in f["issue"].lower() for f in findings)

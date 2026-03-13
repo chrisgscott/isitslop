@@ -24,7 +24,7 @@ def analyze_dependencies(
     all_dep_names = set(deps.keys()) | set(dev_deps.keys())
 
     dep_count = len(deps)
-    if dep_count > 40:
+    if dep_count > 60:
         findings.append({
             "dimension": "dependencies",
             "severity": "high",
@@ -34,7 +34,7 @@ def analyze_dependencies(
             "evidence": f"{dep_count} production dependencies",
             "fix_prompt": f"This project has {dep_count} production dependencies. Audit them — are all of these actually used? Run `npx depcheck` to find unused packages.",
         })
-    elif dep_count > 25:
+    elif dep_count > 45:
         findings.append({
             "dimension": "dependencies",
             "severity": "medium",
