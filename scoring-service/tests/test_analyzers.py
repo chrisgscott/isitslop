@@ -193,6 +193,42 @@ class TestCodeStructure:
         god_findings = [f for f in findings if "large" in f["issue"].lower()]
         assert len(god_findings) == 0
 
+    def test_skips_template_literal_content_files(self):
+        """Files with mostly template literal content (demo data, markdown) aren't god files."""
+        content = 'export const DOCS = [\n  {\n    name: "doc.md",\n    content: `\n'
+        content += "\n".join([f"Line {i} of markdown content" for i in range(500)])
+        content += "\n`\n  }\n];"
+        file = _make_file("lib/demo/content.ts", content)
+        findings = analyze_code_structure([file])
+        god_findings = [f for f in findings if "large" in f["issue"].lower()]
+        assert len(god_findings) == 0
+
+    def test_skips_content_named_files(self):
+        """Files named content.ts, fixture.ts, etc. are data files."""
+        content = "\n".join([f"const x{i} = {i};" for i in range(500)])
+        file = _make_file("lib/content.ts", content)
+        findings = analyze_code_structure([file])
+        god_findings = [f for f in findings if "large" in f["issue"].lower()]
+        assert len(god_findings) == 0
+
+    def test_python_nesting_counts_control_flow_only(self):
+        """Python nesting should count control flow depth, not raw indentation."""
+        content = """class MyService:
+    def process(self, items):
+        for item in items:
+            if item.valid:
+                if item.type == 'a':
+                    do_something()
+"""
+        file = ScannedFile(
+            path="service.py", extension=".py", language="python",
+            loc=len(content.splitlines()), content=content, is_test=False,
+        )
+        findings = analyze_code_structure([file])
+        nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
+        # 3 levels of control flow (for > if > if), not 5 from raw indent
+        assert len(nesting_findings) == 0
+
 
 class TestDependencies:
     def test_detects_too_many_deps(self):

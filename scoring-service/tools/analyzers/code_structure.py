@@ -33,12 +33,31 @@ def _is_data_file(file: ScannedFile) -> bool:
     basename = file.path.split('/')[-1].lower()
     if any(pattern in basename for pattern in ('schema.', 'models.', 'entities.', 'tables.')):
         return True
+    # Content/fixture naming patterns
+    if any(pattern in basename for pattern in ('content.', 'fixture.', 'seed.', 'sample.', 'demo.')):
+        return True
     # Large files that are mostly string literals or objects (i18n, seed data)
     if file.loc > 200:
         lines = file.content.splitlines()
         string_lines = sum(1 for l in lines if l.strip().startswith('"') or l.strip().startswith("'"))
         if string_lines / max(len(lines), 1) > 0.5:
             return True
+        # Template-literal-heavy files (markdown/HTML content in backticks)
+        code_lines = [l for l in lines if l.strip() and not l.strip().startswith('//')]
+        if code_lines:
+            # Count lines inside template literals vs total
+            in_template = False
+            template_lines = 0
+            for l in lines:
+                stripped = l.strip()
+                # Toggle on backtick boundaries (rough but effective)
+                backtick_count = stripped.count('`')
+                if in_template:
+                    template_lines += 1
+                if backtick_count % 2 == 1:
+                    in_template = not in_template
+            if template_lines / len(lines) > 0.5:
+                return True
     return False
 
 
@@ -184,19 +203,29 @@ def _detect_max_control_flow_nesting(content: str) -> int:
 
 
 def _detect_max_control_flow_nesting_python(content: str) -> int:
-    """Detect max control flow nesting for Python (indentation-based)."""
+    """Detect max control flow nesting for Python (indentation-based).
+
+    Tracks a stack of control-flow indent levels so only nested control flow
+    counts, not the base function/class indentation.
+    """
     max_depth = 0
+    # Stack of indent levels where control flow blocks were opened
+    cf_indent_stack: list[int] = []
 
     for line in content.splitlines():
-        if not line.strip() or line.strip().startswith('#'):
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#'):
             continue
 
         indent = len(line) - len(line.lstrip())
 
+        # Pop any control flow levels that we've dedented past
+        while cf_indent_stack and indent <= cf_indent_stack[-1]:
+            cf_indent_stack.pop()
+
         if PYTHON_CONTROL_FLOW.match(line):
-            # Count nesting level based on indent relative to control flow blocks
-            current_depth = indent // 4 + 1  # rough approximation
-            max_depth = max(max_depth, current_depth)
+            cf_indent_stack.append(indent)
+            max_depth = max(max_depth, len(cf_indent_stack))
 
     return max_depth
 
