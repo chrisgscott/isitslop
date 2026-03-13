@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import { motion, AnimatePresence } from 'motion/react'
 
 const SNARKY_MESSAGES = [
   "Downloading your masterpiece...",
@@ -11,7 +12,7 @@ const SNARKY_MESSAGES = [
   "Checking if .env is committed (please no)...",
   "Measuring the spaghetti...",
   "Asking GPT what it thinks of GPT's code...",
-  "Searching for error handling (found: catch(e) {})...",
+  "Searching for error handling...",
   "Calculating your shame score...",
   "Reviewing 47 files your AI hallucinated...",
   "Almost done roasting you...",
@@ -66,12 +67,12 @@ export default function AnalyzingPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4">
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl font-black">Oops</h1>
-          <p className="text-red-400">{error}</p>
-          <a href="/" className="text-zinc-400 hover:text-white underline">
-            Try another repo
+      <main className="min-h-screen flex flex-col items-center justify-center px-4">
+        <div className="text-center space-y-6">
+          <div className="text-6xl font-black text-red-400">ERR</div>
+          <p className="text-red-400 font-mono text-sm">{error}</p>
+          <a href="/" className="text-zinc-500 hover:text-[#22ff44] font-mono text-sm transition-colors">
+            &larr; Try another repo
           </a>
         </div>
       </main>
@@ -79,12 +80,39 @@ export default function AnalyzingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4">
-      <div className="text-center space-y-8">
-        <div className="w-12 h-12 border-4 border-zinc-700 border-t-white rounded-full animate-spin mx-auto" />
-        <p className="text-xl text-zinc-400 animate-pulse">
-          {SNARKY_MESSAGES[messageIndex]}
-        </p>
+    <main className="min-h-screen flex flex-col items-center justify-center px-4">
+      <div className="text-center space-y-12">
+        {/* Pulsing dot */}
+        <div className="flex items-center justify-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-[#22ff44] animate-pulse" />
+          <span className="text-xs font-mono text-zinc-600 uppercase tracking-widest">Analyzing</span>
+        </div>
+
+        {/* Snarky message with crossfade */}
+        <div className="h-8 relative">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={messageIndex}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3 }}
+              className="text-lg text-zinc-400 font-mono"
+            >
+              {SNARKY_MESSAGES[messageIndex]}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+
+        {/* Minimal progress bar */}
+        <div className="w-48 h-px bg-[#222] mx-auto overflow-hidden">
+          <motion.div
+            className="h-full bg-[#22ff44]/50"
+            initial={{ x: '-100%' }}
+            animate={{ x: '100%' }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+          />
+        </div>
       </div>
     </main>
   )

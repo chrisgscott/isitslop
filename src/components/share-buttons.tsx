@@ -21,20 +21,20 @@ export function ShareButtons({ url, repoName, slopScore }: ShareButtonsProps) {
   }
 
   return (
-    <div className="flex gap-3 justify-center">
+    <div className="flex gap-px justify-center">
       <a
         href={twitterUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm transition-colors"
+        className="px-5 py-2.5 bg-[#111] border border-[#1a1a1a] text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 text-xs font-mono uppercase tracking-wider transition-colors"
       >
         Share on X
       </a>
       <button
         onClick={copyLink}
-        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm transition-colors"
+        className="px-5 py-2.5 bg-[#111] border border-[#1a1a1a] border-l-0 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 text-xs font-mono uppercase tracking-wider transition-colors"
       >
-        {copied ? 'Copied!' : 'Copy Link'}
+        {copied ? 'Copied' : 'Copy Link'}
       </button>
     </div>
   )

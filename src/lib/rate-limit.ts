@@ -1,7 +1,7 @@
 const requests = new Map<string, { count: number; resetAt: number }>()
 
 const WINDOW_MS = 60 * 60 * 1000 // 1 hour
-const MAX_REQUESTS = 5
+const MAX_REQUESTS = 20
 
 export function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
   const now = Date.now()

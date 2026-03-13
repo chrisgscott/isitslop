@@ -1,11 +1,68 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-display);
+  --font-mono: var(--font-mono);
+  --color-slop-green: #22ff44;
+  --color-slop-lime: #a3ff12;
+  --color-slop-yellow: #facc15;
+  --color-slop-orange: #fb923c;
+  --color-slop-red: #ef4444;
+  --color-surface: #0a0a0a;
+  --color-surface-raised: #111111;
+  --color-surface-border: #1a1a1a;
 }
 
 body {
-  background-color: #000;
-  color: #fff;
+  background-color: var(--color-surface);
+  color: #e4e4e7;
+  font-family: var(--font-display), system-ui, sans-serif;
+}
+
+/* Grain texture overlay */
+.noise {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Score glow animation */
+@keyframes score-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.score-glow {
+  animation: score-glow 3s ease-in-out infinite;
+}
+
+/* Typing cursor blink */
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.cursor-blink::after {
+  content: '█';
+  animation: cursor-blink 1s step-end infinite;
+  margin-left: 2px;
+}
+
+/* Severity tag styles */
+.severity-critical {
+  --severity-color: var(--color-slop-red);
+}
+.severity-high {
+  --severity-color: var(--color-slop-orange);
+}
+.severity-medium {
+  --severity-color: var(--color-slop-yellow);
+}
+.severity-low {
+  --severity-color: #71717a;
 }

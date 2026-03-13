@@ -37,27 +37,32 @@ export function UrlInput() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
+    <form onSubmit={handleSubmit} className="w-full max-w-xl mx-auto">
       <div className="flex flex-col gap-3">
         <div className="flex gap-2">
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => { setUrl(e.target.value); setError(null) }}
-            placeholder="owner/repo or https://github.com/owner/repo"
-            className="flex-1 px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-zinc-500 font-mono text-sm"
-            disabled={loading}
-          />
+          <div className="flex-1 relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 font-mono text-sm select-none pointer-events-none">
+              &gt;
+            </span>
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => { setUrl(e.target.value); setError(null) }}
+              placeholder="owner/repo"
+              className="w-full pl-8 pr-4 py-3.5 bg-[#111] border border-[#222] rounded-none text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-[#22ff44]/40 font-mono text-sm transition-colors"
+              disabled={loading}
+            />
+          </div>
           <button
             type="submit"
             disabled={loading || !url.trim()}
-            className="px-6 py-3 bg-white text-black font-bold rounded-lg hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            className="px-8 py-3.5 bg-[#22ff44] text-black font-bold rounded-none hover:bg-[#1de83d] disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm font-mono uppercase tracking-wider"
           >
-            {loading ? 'Analyzing...' : 'Analyze'}
+            {loading ? '...' : 'Run'}
           </button>
         </div>
         {error && (
-          <p className="text-red-400 text-sm">{error}</p>
+          <p className="text-red-400 text-xs font-mono">{error}</p>
         )}
       </div>
     </form>

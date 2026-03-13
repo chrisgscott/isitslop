@@ -80,9 +80,9 @@ export function CopyReportButton({ analysis }: CopyReportButtonProps) {
   return (
     <button
       onClick={handleCopy}
-      className="w-full max-w-md mx-auto block px-6 py-4 bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-colors text-sm"
+      className="w-full max-w-md mx-auto block px-6 py-4 bg-[#22ff44] text-black font-bold rounded-none hover:bg-[#1de83d] transition-all text-sm font-mono uppercase tracking-wider"
     >
-      {copied ? 'Copied! Now go paste it into Claude.' : 'Copy report — hand it to your AI'}
+      {copied ? 'Copied. Now go paste it.' : 'Copy report for your AI'}
     </button>
   )
 }

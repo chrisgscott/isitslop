@@ -53,38 +53,48 @@ export default async function ResultPage({ params }: PageProps) {
   const resultUrl = `https://isitslop.co/r/${id}`
 
   return (
-    <main className="min-h-screen bg-black text-white py-16 px-4">
-      <div className="max-w-3xl mx-auto space-y-12">
-        <div className="text-center space-y-2">
+    <main className="min-h-screen py-20 px-4">
+      <div className="max-w-3xl mx-auto space-y-16">
+        {/* Repo header */}
+        <div className="text-center">
           <a
             href={analysis.repo_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-mono text-zinc-500 hover:text-zinc-300"
+            className="text-xs font-mono text-zinc-600 hover:text-[#22ff44] transition-colors tracking-wide"
           >
-            {analysis.repo_owner}/{analysis.repo_name}
+            {analysis.repo_owner}/{analysis.repo_name} &nearr;
           </a>
         </div>
 
+        {/* The Score */}
         <SlopScore score={analysis.slop_score!} />
+
+        {/* Dimension grades */}
         <DimensionGrades scores={analysis.scores!} />
+
+        {/* Verdict */}
         <Verdict verdict={analysis.verdict!} />
 
-        <CopyReportButton analysis={analysis} />
+        {/* Actions */}
+        <div className="space-y-4">
+          <CopyReportButton analysis={analysis} />
+          <ShareButtons
+            url={resultUrl}
+            repoName={`${analysis.repo_owner}/${analysis.repo_name}`}
+            slopScore={analysis.slop_score!}
+          />
+        </div>
 
-        <ShareButtons
-          url={resultUrl}
-          repoName={`${analysis.repo_owner}/${analysis.repo_name}`}
-          slopScore={analysis.slop_score!}
-        />
-
+        {/* Findings */}
         {analysis.receipts && analysis.receipts.length > 0 && (
           <FindingsList findings={analysis.receipts} />
         )}
 
-        <div className="text-center pt-8 border-t border-zinc-800">
-          <a href="/" className="text-zinc-400 hover:text-white underline">
-            Analyze another repo
+        {/* Footer */}
+        <div className="text-center pt-8 border-t border-[#1a1a1a]">
+          <a href="/" className="text-xs font-mono text-zinc-600 hover:text-[#22ff44] transition-colors tracking-wide">
+            &larr; Analyze another repo
           </a>
         </div>
       </div>
