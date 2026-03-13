@@ -35,7 +35,17 @@ Write:
 1. An overall verdict (2-4 sentences, punchy)
 2. One-liner commentary for each of the 6 dimensions
 
-Format as plain text. Start with the verdict, then list each dimension on its own line as "**Dimension Name:** commentary"."""
+Format as plain text. Start with the verdict, then list each dimension on its own line as "**Dimension Name:** commentary". Use the exact display names given above (Error Handling, Code Structure, Test Coverage, Security, Dependencies, Documentation) — NOT snake_case database column names."""
+
+
+DIMENSION_LABELS = {
+    "error_handling": "Error Handling",
+    "code_structure": "Code Structure",
+    "test_coverage": "Test Coverage",
+    "security": "Security",
+    "dependencies": "Dependencies",
+    "documentation": "Documentation",
+}
 
 
 def build_verdict_prompt(
@@ -46,7 +56,7 @@ def build_verdict_prompt(
     metadata: dict,
 ) -> str:
     dimension_grades = "\n".join([
-        f"- {dim}: {data['grade']} ({data['score']}/100, {data['findings_count']} issues)"
+        f"- {DIMENSION_LABELS.get(dim, dim)}: {data['grade']} ({data['score']}/100, {data['findings_count']} issues)"
         for dim, data in scores.items()
     ])
 
