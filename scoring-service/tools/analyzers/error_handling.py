@@ -1,5 +1,5 @@
 import re
-from tools.file_scanner import ScannedFile
+from tools.file_scanner import ScannedFile, NON_CODE_EXTENSIONS
 
 EMPTY_CATCH = re.compile(r'catch\s*\([^)]*\)\s*\{\s*\}', re.MULTILINE)
 CATCH_ONLY_CONSOLE = re.compile(r'catch\s*\([^)]*\)\s*\{\s*console\.(log|warn)\([^)]*\)\s*;?\s*\}', re.MULTILINE)
@@ -13,6 +13,8 @@ def analyze_error_handling(files: list[ScannedFile]) -> list[dict]:
 
     for file in files:
         if file.is_test or file.is_generated or file.is_vendored or not file.language:
+            continue
+        if file.extension in NON_CODE_EXTENSIONS:
             continue
 
         for match in EMPTY_CATCH.finditer(file.content):

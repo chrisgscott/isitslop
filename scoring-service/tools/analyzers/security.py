@@ -1,5 +1,5 @@
 import re
-from tools.file_scanner import ScannedFile
+from tools.file_scanner import ScannedFile, NON_CODE_EXTENSIONS
 
 SECRET_PATTERNS = [
     (re.compile(r'''(?:api[_-]?key|apikey|secret[_-]?key|auth[_-]?token|access[_-]?token|private[_-]?key)\s*[:=]\s*["\']([a-zA-Z0-9_\-/+=]{20,})["\']''', re.IGNORECASE), "Hardcoded API key or secret"),
@@ -14,7 +14,7 @@ def analyze_security(files: list[ScannedFile]) -> list[dict]:
     findings = []
 
     for file in files:
-        if file.is_test or file.is_generated:
+        if file.is_test or file.is_generated or file.is_vendored:
             continue
 
         if file.path == ".env" or file.path.endswith("/.env"):
@@ -27,6 +27,11 @@ def analyze_security(files: list[ScannedFile]) -> list[dict]:
                 "evidence": ".env file found in repo",
                 "fix_prompt": f"Remove {file.path} from the repository and add .env to .gitignore. Rotate any secrets that were exposed.",
             })
+            continue
+
+        # Don't scan non-code files (markdown, yaml, etc.) for secret patterns
+        # They often contain example code snippets with placeholder keys
+        if file.extension in NON_CODE_EXTENSIONS:
             continue
 
         for pattern, description in SECRET_PATTERNS:
