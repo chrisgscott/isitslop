@@ -1,0 +1,6 @@
+modal>=0.70.0
+fastapi[standard]
+openai
+supabase>=2.0.0
+httpx
+pytest
