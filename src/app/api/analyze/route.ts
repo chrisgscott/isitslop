@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
 import { createServiceClient } from '@/lib/supabase/server'
 import { parseGitHubUrl, buildRepoUrl } from '@/lib/github'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown'
+  const { allowed, remaining } = checkRateLimit(ip)
+  if (!allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Try again in an hour.' },
+      { status: 429, headers: { 'X-RateLimit-Remaining': '0' } }
+    )
+  }
+
   const body = await request.json()
   const { url } = body
 
