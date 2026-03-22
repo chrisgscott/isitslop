@@ -21,14 +21,15 @@ body {
   background-color: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
-  font-size: 17px;
-  line-height: 1.6;
+  font-size: 19px;
+  line-height: 1.65;
 }
 
 /* Readable minimums — no squinting */
-.text-xs { font-size: 0.8rem !important; }
-.text-sm { font-size: 0.925rem !important; }
-.text-\[10px\] { font-size: 0.75rem !important; }
+.text-xs { font-size: 0.85rem !important; }
+.text-sm { font-size: 1rem !important; }
+.text-\[10px\] { font-size: 0.8rem !important; }
+.text-base { font-size: 1.1rem !important; }
 
 /* Subtle ruled lines background */
 .ruled-bg {
