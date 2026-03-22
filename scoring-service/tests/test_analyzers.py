@@ -1,5 +1,4 @@
 import re
-import pytest
 from tools.file_scanner import ScannedFile, ScanResult
 from tools.analyzers.error_handling import analyze_error_handling
 from tools.analyzers.test_coverage import analyze_test_coverage
