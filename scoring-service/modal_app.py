@@ -21,7 +21,7 @@ image = (
     timeout=600,
     scaledown_window=60,
 )
-@modal.fastapi_endpoint(method="GET")
+@modal.web_endpoint(method="GET")
 def health():
     return {"status": "ok", "service": "isitslop-scoring"}
 
@@ -32,9 +32,21 @@ def health():
     timeout=600,
     scaledown_window=60,
 )
-@modal.fastapi_endpoint(method="POST")
+@modal.web_endpoint(method="POST")
 def analyze_webhook(request: dict):
-    """Webhook endpoint to trigger repo analysis."""
+    """Webhook endpoint to trigger repo analysis.
+
+    Auth is validated by extracting the token from request body.
+    The frontend includes it as 'auth_token' alongside the payload.
+    """
+    import hmac
+
+    expected = os.environ.get("MODAL_WEBHOOK_SECRET", "")
+    token = (request.get("auth_token") or "").strip()
+    if not expected or not hmac.compare_digest(token, expected):
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
     from tools.pipeline import run_analysis
 
     analysis_id = request.get("analysis_id")

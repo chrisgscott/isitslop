@@ -1,3 +1,7 @@
+// NOTE: In-memory rate limiting. Resets on deploy/restart and is per-instance
+// in serverless environments. Sufficient for launch, but should move to
+// Supabase-backed counters if abuse becomes an issue.
+
 interface RateLimitConfig {
   maxRequests: number
   windowMs: number

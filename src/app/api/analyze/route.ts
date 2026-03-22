@@ -55,9 +55,9 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.MODAL_WEBHOOK_SECRET || ''}`,
       },
       body: JSON.stringify({
+        auth_token: process.env.MODAL_WEBHOOK_SECRET || '',
         analysis_id: id,
         repo_owner: parsed.owner,
         repo_name: parsed.repo,
