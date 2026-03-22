@@ -1,0 +1,234 @@
+{
+  "last_updated": "2026-03-22",
+  "last_change": "Excluded Streamlit/Gradio layout blocks from nesting depth, switched to code-only line counting for god file detection, added monorepo config files to framework conventions",
+  "penalty_points": {
+    "critical": 20,
+    "high": 12,
+    "medium": 6,
+    "low": 2
+  },
+  "grade_scale": {
+    "A": [90, 100],
+    "B": [80, 89],
+    "C": [70, 79],
+    "D": [60, 69],
+    "F": [0, 59]
+  },
+  "dimensions": [
+    {
+      "key": "code_structure",
+      "name": "Code Structure",
+      "weight": 25,
+      "description": "The biggest weight because it's the biggest AI tell. AI tools write everything into one file, one function, deeply nested. This dimension catches that.",
+      "checks": [
+        {
+          "name": "God Files",
+          "severity": "low → high",
+          "threshold": "400+ code lines (low), 500+ (medium), 750+ (high)",
+          "description": "Files that do too much. We count actual code lines — comments, blanks, and docstrings don't count. A 600-line file with 200 lines of comments is really a 400-line file.",
+          "exclusions": [
+            "Test files, generated files, vendored code",
+            "Barrel/index files (re-exports only)",
+            "Data files: locales, i18n, seed data, fixtures",
+            "Files with >50% string/template literal content",
+            "Storybook stories"
+          ]
+        },
+        {
+          "name": "Deep Nesting",
+          "severity": "low → high",
+          "threshold": "5 levels (low), 6-7 (medium), 8+ (high)",
+          "description": "Counts control flow nesting only — if/else/for/while/try/catch. Not object literals, not JSX structure, not config nesting. Single-line returns like `if (x) return y` don't count.",
+          "exclusions": [
+            "Test files, generated files, data files",
+            "Streamlit layout blocks (st.sidebar, st.container, st.columns)",
+            "Gradio layout blocks (gr.Row, gr.Column, gr.Tab)"
+          ]
+        },
+        {
+          "name": "Duplicate Files",
+          "severity": "low",
+          "threshold": "3+ files with same base name and ≥50% content overlap",
+          "description": "Catches copy-paste patterns where the same logic lives in multiple places. Compares content similarity, not just file names.",
+          "exclusions": [
+            "Framework conventions (page.tsx, layout.tsx, route.ts, index.ts)",
+            "Monorepo config files expected to repeat across workspaces",
+            "Template/example directories"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "error_handling",
+      "name": "Error Handling",
+      "weight": 20,
+      "description": "AI-generated code loves to swallow errors. An empty catch block is a bug waiting to happen — we look for evidence that errors are actually being handled, not just silenced.",
+      "checks": [
+        {
+          "name": "Empty Catch Blocks",
+          "severity": "high",
+          "threshold": "Any catch block with no code inside",
+          "description": "A catch block that catches an error and does nothing with it. This is almost never what you want.",
+          "exclusions": []
+        },
+        {
+          "name": "Console-Only Error Handling",
+          "severity": "medium",
+          "threshold": "Catch blocks that only console.log the error",
+          "description": "Logging an error isn't handling it. If the user can't tell something went wrong, you're just hiding problems.",
+          "exclusions": [
+            "console.warn in catch blocks (assumed intentional graceful degradation)"
+          ]
+        },
+        {
+          "name": "Console.log Density",
+          "severity": "medium",
+          "threshold": "5+ console.log calls in a single file",
+          "description": "A high density of console.log usually means debug code left behind in production. We're not counting console.warn or console.error — those are often intentional.",
+          "exclusions": [
+            "CLI tools and scripts (scripts/ directories)",
+            "Build config files (vite.config, webpack.config, next.config, etc.)"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "test_coverage",
+      "name": "Test Coverage",
+      "weight": 20,
+      "description": "Not whether your tests are good — we can't tell that from static analysis. But we can tell if they exist, and roughly how much of your code is covered.",
+      "checks": [
+        {
+          "name": "No Tests Found",
+          "severity": "critical",
+          "threshold": "Zero test files in the entire repo",
+          "description": "We look for .test.*, .spec.*, test_*, and files in /test/ directories. If we find nothing, that's a critical finding.",
+          "exclusions": []
+        },
+        {
+          "name": "No Test Script",
+          "severity": "high",
+          "threshold": "Node.js project with no test script in package.json",
+          "description": "Even if test files exist, there should be a way to run them. We look for test, test:unit, test:e2e, and test:integration scripts.",
+          "exclusions": []
+        },
+        {
+          "name": "Low Test-to-Source Ratio",
+          "severity": "high → medium",
+          "threshold": "Below 10% (high), 10-29% (medium)",
+          "description": "Compares total lines of test code to total lines of source code. Below 10% means you're barely testing anything.",
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "key": "security",
+      "name": "Security",
+      "weight": 15,
+      "description": "We can't do a real security audit from static analysis, but we can catch the obvious disasters — committed secrets, hardcoded credentials, and .env files in the repo.",
+      "checks": [
+        {
+          "name": ".env File Committed",
+          "severity": "critical",
+          "threshold": "Any .env file present in the repo",
+          "description": "If we can see your .env file, so can everyone else. This usually means secrets are exposed.",
+          "exclusions": []
+        },
+        {
+          "name": "Hardcoded Secrets",
+          "severity": "critical",
+          "threshold": "API keys, passwords, tokens in source code",
+          "description": "Detects OpenAI keys (sk-...), GitHub tokens (ghp_...), AWS keys (AKIA...), and general api_key/password/secret assignments with string values.",
+          "exclusions": [
+            "Environment variable references ($DB_PASSWORD)",
+            "Placeholder values (your-password, example-key, test-secret, dummy_*, fake_*)",
+            "Error code constants (INCORRECT_PASSWORD)",
+            ".env.example and .env.template files",
+            "Example, sample, tutorial, and documentation directories",
+            "E2E setup scripts, seed files, fixtures, and mock data",
+            "Public keys in Docusaurus/Algolia configs"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "dependencies",
+      "name": "Dependencies",
+      "weight": 10,
+      "description": "Lower weight because dependency management is genuinely hard and sometimes you just need the packages. But we still flag obvious bloat and hygiene issues.",
+      "checks": [
+        {
+          "name": "Excessive Dependencies",
+          "severity": "high → medium",
+          "threshold": "60+ production deps (high), 45-59 (medium)",
+          "description": "A high dependency count increases attack surface, bundle size, and the odds of supply chain issues.",
+          "exclusions": []
+        },
+        {
+          "name": "Missing Lock File",
+          "severity": "high",
+          "threshold": "Dependencies present but no lock file",
+          "description": "Without a lock file, every install might get different versions. We look for package-lock.json, yarn.lock, pnpm-lock.yaml, and bun.lockb.",
+          "exclusions": []
+        },
+        {
+          "name": "Duplicate-Purpose Packages",
+          "severity": "medium",
+          "threshold": "2+ packages that do the same thing",
+          "description": "Having both axios and node-fetch? Both moment and dayjs? Pick one. We check 8 categories: HTTP clients, utilities, dates, frameworks, test runners, loggers, validators, and CSS-in-JS.",
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "key": "documentation",
+      "name": "Documentation",
+      "weight": 10,
+      "description": "The lightest weight because docs are genuinely optional for small projects. But no README at all? That's a choice.",
+      "checks": [
+        {
+          "name": "No README",
+          "severity": "high",
+          "threshold": "No README.md file in the repo",
+          "description": "A repo without a README is a repo nobody can use. Even a few lines explaining what it does and how to run it is better than nothing.",
+          "exclusions": []
+        },
+        {
+          "name": "Thin README",
+          "severity": "medium",
+          "threshold": "Fewer than 5 lines of content",
+          "description": "An auto-generated or placeholder README with just a title and nothing else. We want to see at least what it does and how to run it.",
+          "exclusions": []
+        },
+        {
+          "name": "Very Few Inline Comments",
+          "severity": "low",
+          "threshold": "Below 2% comment ratio in files with 200+ lines",
+          "description": "We're not looking for comments on every line. But a large file with almost no comments suggests the author didn't stop to explain any of the non-obvious logic.",
+          "exclusions": []
+        }
+      ]
+    }
+  ],
+  "skipped_files": [
+    "node_modules, dist, build, .next, vendor, venv, and other dependency/output directories",
+    "Generated files (auto-generated headers, .d.ts declarations, .map files, migration files)",
+    "Lock files (package-lock.json, yarn.lock, etc.) — analyzed for presence, not content",
+    "Binary files and media assets",
+    "Vendored UI components (components/ui/, ui/primitives/)"
+  ],
+  "optimization_process": [
+    {
+      "name": "Stress Testing",
+      "description": "We regularly run the analyzer against a diverse set of real-world repos — from weekend projects to production monorepos — and manually review the findings. When we find patterns that produce false flags, we add exclusions and refine thresholds."
+    },
+    {
+      "name": "False Positive Reports",
+      "description": "Every finding on a report card has a flag button. When users report a false positive, we review it and, if confirmed, update the analyzer to handle that pattern. Real feedback from real repos drives real improvements."
+    },
+    {
+      "name": "Framework Awareness",
+      "description": "Different frameworks have different conventions. Streamlit apps have deep nesting from layout blocks. Next.js repos have duplicated page.tsx files. Monorepos repeat config files. We teach the analyzer to understand these patterns instead of blindly flagging them."
+    }
+  ]
+}
