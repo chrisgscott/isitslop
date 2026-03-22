@@ -134,6 +134,17 @@ class TestSecurity:
         findings = analyze_security([file])
         assert len(findings) == 0
 
+    def test_skips_mdx_documentation_files(self):
+        """MDX docs files with example passwords/keys shouldn't be flagged."""
+        file = ScannedFile(
+            path="apps/docs/content/docs/self-hosting/email.mdx",
+            extension=".mdx", language=None,
+            loc=50, content='PASSWORD="your-smtp-password"\nAPI_KEY="re_xxxxxxxxxxxxxxxxxx"',
+            is_test=False,
+        )
+        findings = analyze_security([file])
+        assert len(findings) == 0
+
     def test_skips_env_example_files(self):
         """`.env.example` files contain placeholder secrets, not real ones."""
         file = ScannedFile(

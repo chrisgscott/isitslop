@@ -78,7 +78,8 @@ def analyze_security(files: list[ScannedFile]) -> list[dict]:
 
         # Don't scan non-code files (markdown, yaml, etc.) for secret patterns
         # They often contain example code snippets with placeholder keys
-        if file.extension in NON_CODE_EXTENSIONS:
+        # Include .mdx (MDX docs) which isn't in NON_CODE_EXTENSIONS but is documentation
+        if file.extension in NON_CODE_EXTENSIONS or file.extension == '.mdx':
             continue
 
         # Skip e2e/test setup scripts that generate ephemeral credentials
