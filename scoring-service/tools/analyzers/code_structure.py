@@ -23,6 +23,12 @@ FRAMEWORK_CONVENTIONS = {
 # Directories/paths suggesting data/content files, not logic
 DATA_PATH_PATTERNS = {"i18n", "locales", "translations", "fixtures", "seeds", "data", "mocks", "schemas"}
 
+# Directories where duplicate filenames are expected by design
+# Template dirs have variants (base.tsx, with-auth.tsx), docs_src has per-version copies
+DUPLICATE_SKIP_DIRS = re.compile(
+    r'(?:^|/)(?:templates?|docs_src|examples?|samples?)/', re.IGNORECASE
+)
+
 
 def _is_data_file(file: ScannedFile) -> bool:
     """Detect data/content/schema files that are large by nature, not by poor structure."""
@@ -128,6 +134,9 @@ def analyze_code_structure(files: list[ScannedFile]) -> list[dict]:
         if file.is_test or file.is_generated or file.is_vendored:
             continue
         if not file.language or file.extension in NON_CODE_EXTENSIONS:
+            continue
+        # Skip template/example directories where duplicates are intentional
+        if DUPLICATE_SKIP_DIRS.search(file.path):
             continue
         base = re.sub(r'\d+', '', file.path.split('/')[-1].rsplit('.', 1)[0]).lower()
         if base and base not in FRAMEWORK_CONVENTIONS:

@@ -302,6 +302,26 @@ class TestCodeStructure:
         god_findings = [f for f in findings if "large" in f["issue"].lower()]
         assert len(god_findings) == 0
 
+    def test_skips_template_dir_duplicates(self):
+        """Template variant files (base.tsx, with-auth.tsx) aren't real duplicates."""
+        files = [
+            _make_file(f"cli/template/extras/src/{variant}.tsx", f"export default function {variant}() {{ return <div>{variant}</div> }}")
+            for variant in ["base", "with-auth", "with-better-auth"]
+        ]
+        findings = analyze_code_structure(files)
+        dup_findings = [f for f in findings if "similar names" in f["issue"].lower()]
+        assert len(dup_findings) == 0
+
+    def test_skips_docs_src_duplicates(self):
+        """docs_src/ tutorial variants (tutorial001.py, tutorial001_py310.py) aren't duplicates."""
+        files = [
+            _make_file(f"docs_src/security/tutorial004{suffix}.py", "SECRET_KEY = 'fake'\ndef verify():\n    pass", ext=".py")
+            for suffix in ["", "_py310", "_an_py310"]
+        ]
+        findings = analyze_code_structure(files)
+        dup_findings = [f for f in findings if "similar names" in f["issue"].lower()]
+        assert len(dup_findings) == 0
+
     def test_python_nesting_counts_control_flow_only(self):
         """Python nesting should count control flow depth, not raw indentation."""
         content = """class MyService:
