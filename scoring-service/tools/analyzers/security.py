@@ -21,6 +21,9 @@ PUBLIC_KEY_CONTEXTS = re.compile(
     r'(?:docusaurus|algolia|search)', re.IGNORECASE
 )
 
+# Example env files — these contain placeholder secrets, not real ones
+ENV_EXAMPLE_SUFFIXES = ('.env.example', '.env.sample', '.env.template', '.env.local.example')
+
 # Shell variable interpolation — not a hardcoded value
 SHELL_VARIABLE = re.compile(r'\$\{?\w+')
 
@@ -67,6 +70,10 @@ def analyze_security(files: list[ScannedFile]) -> list[dict]:
                 "evidence": ".env file found in repo",
                 "fix_prompt": f"Remove {file.path} from the repository and add .env to .gitignore. Rotate any secrets that were exposed.",
             })
+            continue
+
+        # Skip .env.example/.env.sample files — they contain placeholder secrets
+        if any(file.path.endswith(suffix) for suffix in ENV_EXAMPLE_SUFFIXES):
             continue
 
         # Don't scan non-code files (markdown, yaml, etc.) for secret patterns

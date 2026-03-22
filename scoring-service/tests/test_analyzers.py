@@ -134,6 +134,16 @@ class TestSecurity:
         findings = analyze_security([file])
         assert len(findings) == 0
 
+    def test_skips_env_example_files(self):
+        """`.env.example` files contain placeholder secrets, not real ones."""
+        file = ScannedFile(
+            path=".env.example", extension=".example", language=None,
+            loc=5, content='DATABASE_PASSWORD="password"\nAPI_KEY="sk-placeholder1234567890abcdef"',
+            is_test=False,
+        )
+        findings = analyze_security([file])
+        assert len(findings) == 0
+
     def test_still_catches_real_hardcoded_passwords(self):
         file = _make_file("config.ts", 'const password = "supersecret123"')
         findings = analyze_security([file])
