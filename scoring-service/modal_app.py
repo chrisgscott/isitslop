@@ -21,7 +21,7 @@ image = (
     timeout=600,
     scaledown_window=60,
 )
-@modal.web_endpoint(method="GET")
+@modal.fastapi_endpoint(method="GET")
 def health():
     return {"status": "ok", "service": "isitslop-scoring"}
 
@@ -32,7 +32,7 @@ def health():
     timeout=600,
     scaledown_window=60,
 )
-@modal.web_endpoint(method="POST")
+@modal.fastapi_endpoint(method="POST")
 def analyze_webhook(request: dict):
     """Webhook endpoint to trigger repo analysis.
 
