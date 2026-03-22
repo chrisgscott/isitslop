@@ -18,9 +18,12 @@ FRAMEWORK_CONVENTIONS = {
     "seed", "fixture", "fixtures",
     # Monorepo files that repeat per workspace
     "package", "tsconfig", "eslintrc", "prettierrc",
+    # Dotted variants (rsplit keeps the leading dot)
+    ".eslintrc", ".prettierrc",
     # Dotted config basenames (rsplit removes only last extension)
     "next.config", "postcss.config", "tailwind.config",
     "eslint.config", "tsdown.config",
+    "vitest.config", "tsup.config", "lint-staged.config",
     "sentry.edge.config", "sentry.server.config", "sentry.client.config",
     "inext-scanner.config",  # i18next-scanner after digit removal
     # Next.js / framework files common across monorepo apps
@@ -186,7 +189,7 @@ def analyze_code_structure(files: list[ScannedFile]) -> list[dict]:
             })
 
         max_depth = _detect_max_nesting(file.content, file.language)
-        if max_depth >= DEEP_NESTING_THRESHOLD:
+        if max_depth >= DEEP_NESTING_THRESHOLD and not _is_data_file(file):
             severity, context = _nesting_severity(max_depth)
             findings.append({
                 "dimension": "code_structure",

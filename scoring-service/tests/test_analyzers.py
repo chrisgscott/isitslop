@@ -392,6 +392,29 @@ class TestCodeStructure:
         dup_findings = [f for f in findings if "similar names" in f["issue"].lower()]
         assert len(dup_findings) == 0
 
+    def test_skips_dotted_config_duplicates(self):
+        """Dotted config files like .eslintrc.cjs duplicated across monorepo workspaces are expected."""
+        shared_content = "module.exports = {\n  root: true,\n  parser: '@typescript-eslint/parser',\n  rules: { 'no-unused-vars': 'warn' }\n};"
+        files = [
+            _make_file(f"apps/{app}/.eslintrc.cjs", shared_content, ext=".cjs")
+            for app in ["web", "admin", "api", "docs"]
+        ]
+        findings = analyze_code_structure(files)
+        dup_findings = [f for f in findings if "similar names" in f["issue"].lower()]
+        assert len(dup_findings) == 0
+
+    def test_skips_build_tool_config_duplicates(self):
+        """Build tool configs (vitest, tsup, lint-staged) duplicated across workspaces are expected."""
+        shared_content = "import { defineConfig } from 'vitest/config';\nexport default defineConfig({ test: { globals: true } });"
+        for config_name in ["vitest.config.ts", "tsup.config.ts", "lint-staged.config.js"]:
+            files = [
+                _make_file(f"packages/{pkg}/{config_name}", shared_content)
+                for pkg in ["core", "utils", "db", "auth"]
+            ]
+            findings = analyze_code_structure(files)
+            dup_findings = [f for f in findings if "similar names" in f["issue"].lower()]
+            assert len(dup_findings) == 0, f"Should skip duplicates for {config_name}"
+
     def test_skips_seed_dir_for_god_file(self):
         """Files in prisma/seed/ directories are data files, not god files."""
         content = "\n".join([f'"item{i}": {{ "name": "thing{i}" }},' for i in range(500)])
@@ -520,6 +543,14 @@ def main():
         depth_match = re.search(r'\((\d+) levels\)', nesting_findings[0]["issue"])
         assert depth_match, f"Could not parse depth from: {nesting_findings[0]['issue']}"
         assert int(depth_match.group(1)) == 5
+
+    def test_skips_fixture_files_for_nesting(self):
+        """Files in fixtures/ directories are test data and shouldn't be flagged for deep nesting."""
+        content = "if (a) {\n  if (b) {\n    if (c) {\n      if (d) {\n        if (e) {\n          if (f) {\n            x();\n          }\n        }\n      }\n    }\n  }\n}"
+        file = _make_file("packages/plugin/rules/indent/fixtures/indent-invalid-fixture-1.js", content, ext=".js")
+        findings = analyze_code_structure([file])
+        nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
+        assert len(nesting_findings) == 0
 
     def test_python_nesting_counts_control_flow_only(self):
         """Python nesting should count control flow depth, not raw indentation."""
