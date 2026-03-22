@@ -48,6 +48,12 @@ export default function RootLayout({
         className={`${instrumentSerif.variable} ${caveat.variable} ${ibmPlexMono.variable} antialiased`}
       >
         {children}
+        <footer className="py-6 text-center">
+          <nav className="flex justify-center gap-6 text-sm text-[var(--color-ink-faint)]">
+            <a href="/" className="hover:text-[var(--color-ink)] transition-colors">Home</a>
+            <a href="/insights" className="hover:text-[var(--color-ink)] transition-colors">Class Performance</a>
+          </nav>
+        </footer>
       </body>
     </html>
   );
