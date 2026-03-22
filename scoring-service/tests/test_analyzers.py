@@ -42,6 +42,14 @@ class TestErrorHandling:
         findings = analyze_error_handling([file])
         assert len(findings) == 0
 
+    def test_skips_console_log_density_in_scripts_dir(self):
+        """CLI scripts in scripts/ use console.log as their output mechanism."""
+        content = "\n".join([f"console.log('step {i}')" for i in range(20)])
+        file = _make_file("scripts/bump-version.ts", content)
+        findings = analyze_error_handling([file])
+        density_findings = [f for f in findings if "console.log density" in f["issue"].lower()]
+        assert len(density_findings) == 0
+
     def test_ignores_catch_inside_string_literal(self):
         """Pattern matches inside string literals should be ignored."""
         content = '"Searching for error handling (found: catch(e) {})..."'
@@ -186,6 +194,22 @@ class TestSecurity:
         findings = analyze_security([file])
         assert len(findings) == 0
 
+    def test_skips_dockerfile_dummy_api_keys(self):
+        """Dockerfiles with dummy/placeholder build-time API keys aren't real secrets."""
+        file = ScannedFile(
+            path="docker/Dockerfile.local", extension="", language=None,
+            loc=20, content='ARG API_KEY="dummy_apikey_for_build_only"',
+            is_test=False,
+        )
+        findings = analyze_security([file])
+        assert len(findings) == 0
+
+    def test_skips_placeholder_secret_values(self):
+        """Values containing 'dummy', 'fake', 'test', etc. are not real secrets."""
+        file = _make_file("config.ts", 'const api_key = "fake_key_for_testing_purposes_only"')
+        findings = analyze_security([file])
+        assert len(findings) == 0
+
     def test_still_catches_real_hardcoded_passwords(self):
         file = _make_file("config.ts", 'const password = "supersecret123"')
         findings = analyze_security([file])
@@ -321,6 +345,32 @@ class TestCodeStructure:
         findings = analyze_code_structure(files)
         dup_findings = [f for f in findings if "similar names" in f["issue"].lower()]
         assert len(dup_findings) == 0
+
+    def test_skips_storybook_story_files(self):
+        """Storybook .stories.tsx files are demo code, not production code."""
+        content = "\n".join([f"const line{i} = {i};" for i in range(500)])
+        file = _make_file("components/sidebar.stories.tsx", content, ext=".tsx")
+        findings = analyze_code_structure([file])
+        god_findings = [f for f in findings if "large" in f["issue"].lower()]
+        assert len(god_findings) == 0
+
+    def test_skips_monorepo_config_duplicates(self):
+        """Config files duplicated across monorepo apps/ dirs are expected."""
+        files = [
+            _make_file(f"apps/{app}/next.config.ts", "const config = { reactStrictMode: true };\nexport default config;")
+            for app in ["web", "admin", "api"]
+        ]
+        findings = analyze_code_structure(files)
+        dup_findings = [f for f in findings if "similar names" in f["issue"].lower()]
+        assert len(dup_findings) == 0
+
+    def test_skips_seed_dir_for_god_file(self):
+        """Files in prisma/seed/ directories are data files, not god files."""
+        content = "\n".join([f'"item{i}": {{ "name": "thing{i}" }},' for i in range(500)])
+        file = _make_file("packages/database/prisma/seed/data.ts", content)
+        findings = analyze_code_structure([file])
+        god_findings = [f for f in findings if "large" in f["issue"].lower()]
+        assert len(god_findings) == 0
 
     def test_python_nesting_counts_control_flow_only(self):
         """Python nesting should count control flow depth, not raw indentation."""
