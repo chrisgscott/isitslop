@@ -18,13 +18,16 @@ const SNARKY_MESSAGES = [
   "This one's going on the fridge. Not in a good way.",
 ]
 
+const SLOW_THRESHOLD_MS = 120_000
+const TIMEOUT_MS = 300_000
+
 export default function AnalyzingPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [messageIndex, setMessageIndex] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [isSlow, setIsSlow] = useState(false)
   const [startTime] = useState(Date.now())
-  const TIMEOUT_MS = 120_000
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -35,10 +38,16 @@ export default function AnalyzingPage() {
 
   useEffect(() => {
     const poll = setInterval(async () => {
-      if (Date.now() - startTime > TIMEOUT_MS) {
-        setError('Analysis is taking too long. The repo might be too large or our service is busy. Try again later.')
+      const elapsed = Date.now() - startTime
+
+      if (elapsed > TIMEOUT_MS) {
+        setError('OK this one\'s actually stuck. The repo might be too large for us to handle right now.')
         clearInterval(poll)
         return
+      }
+
+      if (elapsed > SLOW_THRESHOLD_MS) {
+        setIsSlow(true)
       }
 
       const { data, error: fetchError } = await supabase
@@ -73,6 +82,9 @@ export default function AnalyzingPage() {
             Something went wrong.
           </p>
           <p className="text-sm text-[var(--color-ink-light)]">{error}</p>
+          <p className="text-xs text-[var(--color-ink-faint)]">
+            Bookmark this page and check back — it might still finish.
+          </p>
           <a href="/" className="text-sm text-[var(--color-ink-light)] hover:text-[var(--color-red-ink)] italic transition-colors">
             &larr; Try another repo
           </a>
@@ -108,6 +120,19 @@ export default function AnalyzingPage() {
             </motion.p>
           </AnimatePresence>
         </div>
+
+        {/* Slow analysis notice */}
+        <AnimatePresence>
+          {isSlow && (
+            <motion.p
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-xs text-[var(--color-ink-faint)] italic"
+            >
+              This one&apos;s a big repo. Still grading, hang tight...
+            </motion.p>
+          )}
+        </AnimatePresence>
 
         {/* Simple animated ellipsis */}
         <div className="flex justify-center gap-1.5">
