@@ -1,6 +1,7 @@
 import { UrlInput } from '@/components/url-input'
 import { ChalkboardTeaser } from '@/components/chalkboard-teaser'
 import { RecentReports } from '@/components/recent-reports'
+import { SnarkyStats } from '@/components/snarky-stats'
 
 export default function Home() {
   return (
@@ -21,6 +22,7 @@ export default function Home() {
         <UrlInput />
       </div>
 
+      <SnarkyStats />
       <RecentReports />
       <ChalkboardTeaser />
     </main>
