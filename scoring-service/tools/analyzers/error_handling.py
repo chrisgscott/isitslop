@@ -7,6 +7,9 @@ CONSOLE_LOG = re.compile(r'\bconsole\.log\b')
 
 CONSOLE_LOG_THRESHOLD = 5
 
+# Directories where console.log is the expected output mechanism (CLI scripts, build tools)
+SCRIPT_DIR_PATTERN = re.compile(r'(?:^|/)scripts?/', re.IGNORECASE)
+
 # Pattern to check if a match position is inside a string literal
 STRING_CONTEXT = re.compile(r'''["'`].*catch\s*\(''')
 
@@ -60,7 +63,7 @@ def analyze_error_handling(files: list[ScannedFile]) -> list[dict]:
             })
 
         console_count = len(CONSOLE_LOG.findall(file.content))
-        if console_count >= CONSOLE_LOG_THRESHOLD:
+        if console_count >= CONSOLE_LOG_THRESHOLD and not SCRIPT_DIR_PATTERN.search(file.path):
             findings.append({
                 "dimension": "error_handling",
                 "severity": "medium",
