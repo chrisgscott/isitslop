@@ -52,6 +52,7 @@ export default function RootLayout({
           <nav className="flex justify-center gap-6 text-sm text-[var(--color-ink-faint)]">
             <a href="/" className="hover:text-[var(--color-ink)] transition-colors">Home</a>
             <a href="/insights" className="hover:text-[var(--color-ink)] transition-colors">Class Performance</a>
+            <a href="/rubric" className="hover:text-[var(--color-ink)] transition-colors">The Rubric</a>
           </nav>
         </footer>
       </body>
