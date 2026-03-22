@@ -65,6 +65,22 @@ PLACEHOLDER_PASSWORD = re.compile(
 )
 
 
+PLACEHOLDER_VALUE = re.compile(
+    r'(?:dummy|fake|test|placeholder|example|sample|mock|xxxx)',
+    re.IGNORECASE,
+)
+
+
+def _is_placeholder_secret(matched_text: str) -> bool:
+    """Detect placeholder/dummy values in any secret pattern, not just passwords."""
+    # Extract the quoted value from the match
+    val_match = re.search(r'["\']([^"\']+)["\']', matched_text)
+    if not val_match:
+        return False
+    value = val_match.group(1)
+    return bool(PLACEHOLDER_VALUE.search(value))
+
+
 def _is_placeholder_password(match_text: str) -> bool:
     """Detect placeholder/example passwords that aren't real credentials."""
     # Extract the password value from the match
@@ -127,6 +143,10 @@ def analyze_security(files: list[ScannedFile]) -> list[dict]:
 
                 # Skip public/client-side keys (Algolia, Docusaurus search, etc.)
                 if _is_public_key_context(file.path, file.content, match.start()):
+                    continue
+
+                # Skip placeholder/dummy values in any secret type
+                if _is_placeholder_secret(matched_text):
                     continue
 
                 # Skip placeholder passwords and error code constants
