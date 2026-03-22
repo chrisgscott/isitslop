@@ -174,6 +174,18 @@ class TestSecurity:
         findings = analyze_security([file])
         assert len(findings) == 0
 
+    def test_skips_placeholder_passwords(self):
+        """Placeholder passwords like 'your-password' aren't real secrets."""
+        file = _make_file("mailer.ts", "password = 'your-password'")
+        findings = analyze_security([file])
+        assert len(findings) == 0
+
+    def test_skips_error_code_password_constants(self):
+        """UPPER_SNAKE_CASE password values are error codes, not secrets."""
+        file = _make_file("errors.ts", "Password: 'INCORRECT_PASSWORD'")
+        findings = analyze_security([file])
+        assert len(findings) == 0
+
     def test_still_catches_real_hardcoded_passwords(self):
         file = _make_file("config.ts", 'const password = "supersecret123"')
         findings = analyze_security([file])

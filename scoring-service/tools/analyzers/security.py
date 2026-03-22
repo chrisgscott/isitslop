@@ -58,6 +58,28 @@ def _is_shell_variable_value(match_text: str) -> bool:
     return bool(SHELL_VARIABLE.search(match_text))
 
 
+# Placeholder password patterns — clearly not real credentials
+PLACEHOLDER_PASSWORD = re.compile(
+    r'^(?:your[_-]|example[_-]|change[_-]?me|replace[_-]?me|todo|placeholder|xxx)',
+    re.IGNORECASE,
+)
+
+
+def _is_placeholder_password(match_text: str) -> bool:
+    """Detect placeholder/example passwords that aren't real credentials."""
+    # Extract the password value from the match
+    pw_match = re.search(r'password\s*[:=]\s*["\']([^"\']+)["\']', match_text, re.IGNORECASE)
+    if not pw_match:
+        return False
+    value = pw_match.group(1)
+    if PLACEHOLDER_PASSWORD.match(value):
+        return True
+    # All-caps constants like INCORRECT_PASSWORD are error codes, not secrets
+    if re.match(r'^[A-Z][A-Z0-9_]+$', value):
+        return True
+    return False
+
+
 def analyze_security(files: list[ScannedFile]) -> list[dict]:
     findings = []
 
@@ -105,6 +127,10 @@ def analyze_security(files: list[ScannedFile]) -> list[dict]:
 
                 # Skip public/client-side keys (Algolia, Docusaurus search, etc.)
                 if _is_public_key_context(file.path, file.content, match.start()):
+                    continue
+
+                # Skip placeholder passwords and error code constants
+                if 'password' in description.lower() and _is_placeholder_password(matched_text):
                     continue
 
                 line_num = file.content[:match.start()].count('\n') + 1
