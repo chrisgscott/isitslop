@@ -1,8 +1,9 @@
 import { UrlInput } from '@/components/url-input'
+import { ChalkboardTeaser } from '@/components/chalkboard-teaser'
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4">
+    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12 gap-16">
       <div className="max-w-lg mx-auto text-center space-y-10">
         <div className="space-y-4">
           <p className="text-sm tracking-[0.3em] uppercase text-[var(--color-ink-light)]">
@@ -18,6 +19,8 @@ export default function Home() {
 
         <UrlInput />
       </div>
+
+      <ChalkboardTeaser />
     </main>
   )
 }
