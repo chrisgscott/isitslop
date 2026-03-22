@@ -134,6 +134,25 @@ class TestSecurity:
         findings = analyze_security([file])
         assert len(findings) == 0
 
+    def test_skips_docs_src_tutorial_secrets(self):
+        """Tutorial/example code in docs_src/ directories uses placeholder secrets."""
+        file = _make_file(
+            "docs_src/security/tutorial004.py",
+            'SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"',
+            ext=".py",
+        )
+        findings = analyze_security([file])
+        assert len(findings) == 0
+
+    def test_skips_examples_directory_secrets(self):
+        """Example directories contain demo code with fake credentials."""
+        file = _make_file(
+            "examples/auth/config.ts",
+            'const password = "example-password-here"',
+        )
+        findings = analyze_security([file])
+        assert len(findings) == 0
+
     def test_skips_mdx_documentation_files(self):
         """MDX docs files with example passwords/keys shouldn't be flagged."""
         file = ScannedFile(

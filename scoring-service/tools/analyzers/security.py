@@ -15,6 +15,11 @@ SETUP_SCRIPT_PATTERNS = re.compile(
     r'(?:setup[_-]?e2e|seed|fixtures?|mock|fake|dummy)', re.IGNORECASE
 )
 
+# Directories containing example/tutorial code with intentional placeholder secrets
+EXAMPLE_DIR_PATTERNS = re.compile(
+    r'(?:^|/)(?:docs_src|examples?|samples?|tutorials?)/', re.IGNORECASE
+)
+
 # Public/client-side API keys that are not secrets
 # Algolia search keys in docusaurus configs, etc.
 PUBLIC_KEY_CONTEXTS = re.compile(
@@ -84,6 +89,10 @@ def analyze_security(files: list[ScannedFile]) -> list[dict]:
 
         # Skip e2e/test setup scripts that generate ephemeral credentials
         if _is_setup_or_test_script(file.path):
+            continue
+
+        # Skip example/tutorial directories — they use intentional placeholder secrets
+        if EXAMPLE_DIR_PATTERNS.search(file.path):
             continue
 
         for pattern, description in SECRET_PATTERNS:
