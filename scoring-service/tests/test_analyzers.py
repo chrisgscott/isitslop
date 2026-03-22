@@ -400,6 +400,32 @@ class TestCodeStructure:
         god_findings = [f for f in findings if "large" in f["issue"].lower()]
         assert len(god_findings) == 0
 
+    def test_skips_well_documented_file_under_code_threshold(self):
+        """Files with lots of comments/docstrings shouldn't be flagged if code lines are under threshold."""
+        code_lines = [f"const line{i} = {i};" for i in range(200)]
+        comment_lines = [f"// This documents line {i}" for i in range(200)]
+        blank_lines = [""] * 100
+        # 500 total lines but only 200 are code
+        content = "\n".join(code_lines + comment_lines + blank_lines)
+        file = _make_file("well-documented.ts", content)
+        findings = analyze_code_structure([file])
+        god_findings = [f for f in findings if "large" in f["issue"].lower()]
+        assert len(god_findings) == 0
+
+    def test_skips_python_file_heavy_on_docstrings(self):
+        """Python files with extensive docstrings shouldn't be penalized."""
+        methods = []
+        for i in range(50):
+            methods.append(f'    def method_{i}(self):\n        """\n        This is a detailed docstring\n        explaining what method_{i} does.\n        Args:\n            none\n        Returns:\n            int\n        """\n        return {i}')
+        content = "class MyAPI:\n" + "\n\n".join(methods)
+        file = ScannedFile(
+            path="api.py", extension=".py", language="python",
+            loc=len(content.splitlines()), content=content, is_test=False,
+        )
+        findings = analyze_code_structure([file])
+        god_findings = [f for f in findings if "large" in f["issue"].lower()]
+        assert len(god_findings) == 0
+
     def test_python_nesting_counts_control_flow_only(self):
         """Python nesting should count control flow depth, not raw indentation."""
         content = """class MyService:

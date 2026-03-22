@@ -75,6 +75,61 @@ def _is_data_file(file: ScannedFile) -> bool:
     return False
 
 
+def _count_code_lines(content: str, language: str | None = None) -> int:
+    """Count lines of actual code, excluding comments, docstrings, and blanks."""
+    lines = content.splitlines()
+    code_count = 0
+    in_block_comment = False
+    in_docstring = False
+    docstring_delimiter = None
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Skip blank lines
+        if not stripped:
+            continue
+
+        # Python docstrings (triple quotes)
+        if language == "python":
+            if not in_docstring:
+                if stripped.startswith('"""') or stripped.startswith("'''"):
+                    docstring_delimiter = stripped[:3]
+                    # Single-line docstring: """text"""
+                    if stripped.count(docstring_delimiter) >= 2 and stripped.endswith(docstring_delimiter) and len(stripped) > 3:
+                        continue
+                    in_docstring = True
+                    continue
+            else:
+                if docstring_delimiter and docstring_delimiter in stripped:
+                    in_docstring = False
+                    docstring_delimiter = None
+                continue
+
+        if in_docstring:
+            continue
+
+        # Block comments (JS/TS/Java/C-style)
+        if not in_block_comment:
+            if stripped.startswith('/*'):
+                if '*/' in stripped:
+                    continue  # Single-line block comment
+                in_block_comment = True
+                continue
+        else:
+            if '*/' in stripped:
+                in_block_comment = False
+            continue
+
+        # Single-line comments
+        if stripped.startswith('//') or stripped.startswith('#'):
+            continue
+
+        code_count += 1
+
+    return code_count
+
+
 def _god_file_severity(loc: int) -> tuple[str, str]:
     """Scale severity and description by how far over the threshold a file is."""
     if loc >= 750:
@@ -116,15 +171,18 @@ def analyze_code_structure(files: list[ScannedFile]) -> list[dict]:
             continue
 
         if file.loc > GOD_FILE_THRESHOLD and not _is_data_file(file) and not file.is_barrel:
-            severity, context = _god_file_severity(file.loc)
+            code_lines = _count_code_lines(file.content, file.language)
+            if code_lines <= GOD_FILE_THRESHOLD:
+                continue
+            severity, context = _god_file_severity(code_lines)
             findings.append({
                 "dimension": "code_structure",
                 "severity": severity,
                 "file": file.path,
                 "line": None,
-                "issue": f"Large file ({file.loc} lines) — {context}",
-                "evidence": f"{file.loc} LOC, threshold is {GOD_FILE_THRESHOLD}",
-                "fix_prompt": f"{file.path} is {file.loc} lines long. Break it into smaller, focused modules. Each file should have one clear responsibility.",
+                "issue": f"Large file ({code_lines} code lines, {file.loc} total) — {context}",
+                "evidence": f"{code_lines} code lines (of {file.loc} total), threshold is {GOD_FILE_THRESHOLD}",
+                "fix_prompt": f"{file.path} has {code_lines} lines of code ({file.loc} total). Break it into smaller, focused modules. Each file should have one clear responsibility.",
             })
 
         max_depth = _detect_max_nesting(file.content, file.language)
