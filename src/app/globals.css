@@ -8,8 +8,8 @@
   --color-paper-dark: #f0e9da;
   --color-paper-line: #d4c5b0;
   --color-ink: #2c2418;
-  --color-ink-light: #8b7e6a;
-  --color-ink-faint: #b8a990;
+  --color-ink-light: #6b5e4a;
+  --color-ink-faint: #8b7e6a;
   --color-red-ink: #c41e3a;
   --color-blue-ink: #1a3a6a;
   --color-green-ink: #2d6a4f;
@@ -21,7 +21,14 @@ body {
   background-color: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  line-height: 1.6;
 }
+
+/* Readable minimums — no squinting */
+.text-xs { font-size: 0.8rem !important; }
+.text-sm { font-size: 0.925rem !important; }
+.text-\[10px\] { font-size: 0.75rem !important; }
 
 /* Subtle ruled lines background */
 .ruled-bg {
