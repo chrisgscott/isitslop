@@ -1,3 +1,4 @@
+import re
 import pytest
 from tools.file_scanner import ScannedFile, ScanResult
 from tools.analyzers.error_handling import analyze_error_handling
@@ -470,6 +471,56 @@ def main():
         nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
         # 6 levels: with > for > if > with > if > if
         assert len(nesting_findings) > 0
+
+    def test_python_nesting_depth_accuracy(self):
+        """Verify the counter reports exact depth, not an undercount."""
+        # Exactly 6 levels of control flow nesting
+        content = """def process(items):
+    for item in items:
+        if item.valid:
+            try:
+                if item.type == 'a':
+                    for sub in item.children:
+                        if sub.active:
+                            handle(sub)
+            except Exception:
+                pass
+"""
+        file = ScannedFile(
+            path="deep.py", extension=".py", language="python",
+            loc=len(content.splitlines()), content=content, is_test=False,
+        )
+        findings = analyze_code_structure([file])
+        nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
+        assert len(nesting_findings) > 0
+        # Should report exactly 6 levels (for > if > try > if > for > if)
+        depth_match = re.search(r'\((\d+) levels\)', nesting_findings[0]["issue"])
+        assert depth_match, f"Could not parse depth from: {nesting_findings[0]['issue']}"
+        assert int(depth_match.group(1)) == 6
+
+    def test_js_nesting_depth_accuracy(self):
+        """Verify JS/TS counter reports exact depth."""
+        # Exactly 5 levels of control flow
+        content = """if (a) {
+  for (let i = 0; i < n; i++) {
+    if (b) {
+      try {
+        if (c) {
+          doSomething();
+        }
+      } catch (e) {
+        handle(e);
+      }
+    }
+  }
+}"""
+        file = _make_file("deep.ts", content)
+        findings = analyze_code_structure([file])
+        nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
+        assert len(nesting_findings) > 0
+        depth_match = re.search(r'\((\d+) levels\)', nesting_findings[0]["issue"])
+        assert depth_match, f"Could not parse depth from: {nesting_findings[0]['issue']}"
+        assert int(depth_match.group(1)) == 5
 
     def test_python_nesting_counts_control_flow_only(self):
         """Python nesting should count control flow depth, not raw indentation."""
