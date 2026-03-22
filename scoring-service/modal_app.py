@@ -28,7 +28,10 @@ def health():
 
 @app.function(
     image=image,
-    secrets=[modal.Secret.from_name("isitslop-secrets")],
+    secrets=[
+        modal.Secret.from_name("isitslop-secrets"),
+        modal.Secret.from_name("isitslop-webhook-secret"),
+    ],
     timeout=600,
     scaledown_window=60,
 )
