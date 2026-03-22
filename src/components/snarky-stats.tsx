@@ -32,7 +32,7 @@ export async function SnarkyStats() {
     { value: formatNumber(totalRepos), label: 'repos graded' },
     { value: formatNumber(totalLoc), label: 'lines of "code" read' },
     { value: `${fPct}%`, label: 'failing Code Structure' },
-    { value: '0', label: 'fucks given' },
+    { value: '0', label: 'hope left' },
   ]
 
   return (
