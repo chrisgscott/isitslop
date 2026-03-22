@@ -63,7 +63,7 @@ GENERATED_FILENAMES = {
 
 GENERATED_EXTENSIONS = {".map", ".d.ts", ".min.js", ".min.css"}
 
-GENERATED_DIRS = {"migrations", "drizzle", "prisma/migrations", ".prisma"}
+GENERATED_DIRS = {"migration", "migrations", "drizzle", "prisma/migrations", ".prisma"}
 
 # Non-code extensions that shouldn't get code-quality heuristics (nesting, god-file, etc.)
 NON_CODE_EXTENSIONS = {
@@ -116,10 +116,15 @@ class ScanResult:
     shadcn_components_dir: str | None = None
 
 
+TEST_DIRS = {"test", "tests", "__tests__", "spec", "specs"}
+
+
 def _is_test_file(path: str) -> bool:
     name = Path(path).name.lower()
-    parent = Path(path).parent.name.lower()
-    if parent in {"test", "tests", "__tests__", "spec", "specs"}:
+    # Check all ancestor directories, not just immediate parent
+    # e.g. tests/manual/test-knowledge-api.ts should still be detected
+    parts = set(Path(path).parts)
+    if parts & TEST_DIRS:
         return True
     return any(pattern in name for pattern in TEST_PATTERNS)
 

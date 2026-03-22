@@ -92,3 +92,25 @@ def test_migration_files_marked_generated(sample_repo):
     mig_files = [f for f in result.files if "migrations" in f.path]
     assert len(mig_files) == 1
     assert mig_files[0].is_generated is True
+
+
+def test_migration_singular_dir_marked_generated(sample_repo):
+    """migration/ (singular) should also be treated as generated, not just migrations/."""
+    mig_dir = sample_repo / "migration"
+    mig_dir.mkdir()
+    (mig_dir / "complete_setup.sql").write_text("CREATE TABLE users (id INT);")
+    result = scan_repo(sample_repo)
+    mig_files = [f for f in result.files if "migration" in f.path]
+    assert len(mig_files) == 1
+    assert mig_files[0].is_generated is True
+
+
+def test_nested_test_dirs_detected(sample_repo):
+    """Files in tests/manual/ or tests/integration/ should still be detected as test files."""
+    manual_dir = sample_repo / "tests" / "manual"
+    manual_dir.mkdir(parents=True)
+    (manual_dir / "test-knowledge-api.ts").write_text("console.log('test')")
+    result = scan_repo(sample_repo)
+    manual_files = [f for f in result.files if "manual" in f.path]
+    assert len(manual_files) == 1
+    assert manual_files[0].is_test is True

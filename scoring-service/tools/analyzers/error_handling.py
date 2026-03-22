@@ -10,6 +10,13 @@ CONSOLE_LOG_THRESHOLD = 5
 # Directories where console.log is the expected output mechanism (CLI scripts, build tools)
 SCRIPT_DIR_PATTERN = re.compile(r'(?:^|/)scripts?/', re.IGNORECASE)
 
+# Build tool config files where console.log is used for dev-server/middleware logging
+BUILD_CONFIG_PATTERN = re.compile(
+    r'(?:^|/)(?:vite|webpack|rollup|esbuild|rspack|turbopack|next|postcss|tailwind|jest|vitest)'
+    r'\.config\.',
+    re.IGNORECASE,
+)
+
 # Pattern to check if a match position is inside a string literal
 STRING_CONTEXT = re.compile(r'''["'`].*catch\s*\(''')
 
@@ -52,18 +59,31 @@ def analyze_error_handling(files: list[ScannedFile]) -> list[dict]:
             if _match_is_in_string(file.content, match.start()):
                 continue
             line_num = file.content[:match.start()].count('\n') + 1
+            # console.warn in a catch block is often intentional graceful degradation
+            # (e.g. localStorage fallback, clipboard API fallback) — lower severity
+            method = match.group(1)  # "log" or "warn"
+            if method == "warn":
+                severity = "low"
+                issue = "Catch block logs warning without re-throwing — may be intentional graceful degradation"
+            else:
+                severity = "medium"
+                issue = "Catch block only logs error without handling it"
             findings.append({
                 "dimension": "error_handling",
-                "severity": "medium",
+                "severity": severity,
                 "file": file.path,
                 "line": line_num,
-                "issue": "Catch block only logs error without handling it",
+                "issue": issue,
                 "evidence": match.group().strip()[:100],
                 "fix_prompt": f"In {file.path} at line {line_num}, the catch block only console.logs the error. Add proper error handling — return an error response, show a user-facing message, or re-throw.",
             })
 
         console_count = len(CONSOLE_LOG.findall(file.content))
-        if console_count >= CONSOLE_LOG_THRESHOLD and not SCRIPT_DIR_PATTERN.search(file.path):
+        if (
+            console_count >= CONSOLE_LOG_THRESHOLD
+            and not SCRIPT_DIR_PATTERN.search(file.path)
+            and not BUILD_CONFIG_PATTERN.search(file.path)
+        ):
             findings.append({
                 "dimension": "error_handling",
                 "severity": "medium",

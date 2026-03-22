@@ -50,6 +50,34 @@ class TestErrorHandling:
         density_findings = [f for f in findings if "console.log density" in f["issue"].lower()]
         assert len(density_findings) == 0
 
+    def test_skips_console_log_density_in_build_configs(self):
+        """Build tool configs (vite, webpack, etc.) use console.log for dev-server logging."""
+        content = "\n".join([f"console.log('proxy {i}')" for i in range(15)])
+        for config_name in ["vite.config.ts", "webpack.config.js", "rollup.config.mjs", "vitest.config.ts"]:
+            file = _make_file(config_name, content)
+            findings = analyze_error_handling([file])
+            density_findings = [f for f in findings if "console.log density" in f["issue"].lower()]
+            assert len(density_findings) == 0, f"Should skip {config_name}"
+
+    def test_catch_console_warn_gets_low_severity(self):
+        """console.warn in catch blocks is often intentional graceful degradation."""
+        content = "try { foo() } catch (e) { console.warn('fallback:', e) }"
+        file = _make_file("clipboard.ts", content)
+        findings = analyze_error_handling([file])
+        catch_findings = [f for f in findings if "catch" in f["issue"].lower()]
+        assert len(catch_findings) == 1
+        assert catch_findings[0]["severity"] == "low"
+        assert "graceful degradation" in catch_findings[0]["issue"].lower()
+
+    def test_catch_console_log_stays_medium_severity(self):
+        """console.log in catch blocks is likely debug leftover — stays medium."""
+        content = "try { foo() } catch (e) { console.log('error:', e) }"
+        file = _make_file("app.ts", content)
+        findings = analyze_error_handling([file])
+        catch_findings = [f for f in findings if "catch" in f["issue"].lower()]
+        assert len(catch_findings) == 1
+        assert catch_findings[0]["severity"] == "medium"
+
     def test_ignores_catch_inside_string_literal(self):
         """Pattern matches inside string literals should be ignored."""
         content = '"Searching for error handling (found: catch(e) {})..."'
