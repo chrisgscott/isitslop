@@ -219,12 +219,16 @@
   ],
   "optimization_process": [
     {
-      "name": "Stress Testing",
-      "description": "We regularly run the analyzer against a diverse set of real-world repos — from weekend projects to production monorepos — and manually review the findings. When we find patterns that produce false flags, we add exclusions and refine thresholds."
+      "name": "Nightly Automated Stress Tests",
+      "description": "Every night at 2am, an automated agent picks 5-10 diverse repos from GitHub — monorepos, framework-heavy apps, repos with generated code, data fixtures, and public API keys — runs them through every analyzer, reads the actual flagged code, and classifies each finding as legitimate or false positive. Pattern-fixable false positives get auto-fixed with test coverage, and a detailed report is generated. This runs every single night, so the rubric is always getting tighter."
     },
     {
       "name": "False Positive Reports",
       "description": "Every finding on a report card has a flag button. When users report a false positive, we review it and, if confirmed, update the analyzer to handle that pattern. Real feedback from real repos drives real improvements."
+    },
+    {
+      "name": "Test-Gated Fixes",
+      "description": "Every analyzer optimization must pass the full test suite before it ships. If a fix is too broad and breaks an existing test, it gets reverted automatically. No fix goes live without proof it doesn't create new problems."
     },
     {
       "name": "Framework Awareness",
