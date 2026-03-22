@@ -18,10 +18,18 @@ FRAMEWORK_CONVENTIONS = {
     "seed", "fixture", "fixtures",
     # Monorepo files that repeat per workspace
     "package", "tsconfig", "eslintrc", "prettierrc",
+    # Dotted config basenames (rsplit removes only last extension)
+    "next.config", "postcss.config", "tailwind.config",
+    "eslint.config", "tsdown.config",
+    "sentry.edge.config", "sentry.server.config", "sentry.client.config",
+    "inext-scanner.config",  # i18next-scanner after digit removal
+    # Next.js / framework files common across monorepo apps
+    "env", "global-error", "instrumentation", "instrumentation-client",
+    "skip-ci", "proxy",
 }
 
 # Directories/paths suggesting data/content files, not logic
-DATA_PATH_PATTERNS = {"i18n", "locales", "translations", "fixtures", "seeds", "data", "mocks", "schemas"}
+DATA_PATH_PATTERNS = {"i18n", "locales", "translations", "fixtures", "seed", "seeds", "data", "mocks", "schemas"}
 
 # Directories where duplicate filenames are expected by design
 # Template dirs have variants (base.tsx, with-auth.tsx), docs_src has per-version copies
@@ -92,6 +100,10 @@ def _is_analyzable_code(file: ScannedFile) -> bool:
     if not file.language:
         return False
     if file.extension in NON_CODE_EXTENSIONS:
+        return False
+    # Storybook story files are demo/documentation, not production code
+    basename = file.path.split('/')[-1]
+    if '.stories.' in basename or '.story.' in basename:
         return False
     return True
 
