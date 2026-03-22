@@ -6,6 +6,9 @@ import { Verdict } from '@/components/verdict'
 import { FindingsList } from '@/components/findings-list'
 import { ShareButtons } from '@/components/share-buttons'
 import { CopyReportButton } from '@/components/copy-report-button'
+import { ScoreTrend } from '@/components/score-trend'
+import { FindingDiffSection } from '@/components/finding-diff'
+import { getRepoHistory } from '@/lib/repo-history'
 import type { Analysis } from '@/types/analysis'
 import type { Metadata } from 'next'
 
@@ -53,6 +56,7 @@ export default async function ResultPage({ params }: PageProps) {
   const analysis = data as Analysis
   const overallGrade = 100 - (analysis.slop_score ?? 0)
   const resultUrl = `https://isitslop.co/r/${id}`
+  const history = await getRepoHistory(id, analysis.repo_owner, analysis.repo_name)
   const analyzedDate = analysis.analyzed_at
     ? new Date(analysis.analyzed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -133,6 +137,27 @@ export default async function ResultPage({ params }: PageProps) {
         {analysis.receipts && analysis.receipts.length > 0 && (
           <section className="py-8 border-t border-[var(--color-paper-line)]">
             <FindingsList findings={analysis.receipts} analysisId={analysis.id} />
+          </section>
+        )}
+
+        {/* Progress Report — shown when repo has multiple runs */}
+        {history && (
+          <section className="py-8 border-t border-[var(--color-paper-line)]">
+            <div className="space-y-2 mb-6">
+              <p className="text-xs tracking-[0.2em] uppercase text-[var(--color-ink-faint)]">
+                Progress Report
+              </p>
+              <p className="handwriting text-[var(--color-blue-ink)] text-base">
+                {history.runs.length} runs on record for this student
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+              <ScoreTrend runs={history.runs} currentIndex={history.current_index} />
+              {history.finding_diff && (
+                <FindingDiffSection diff={history.finding_diff} />
+              )}
+            </div>
           </section>
         )}
 
