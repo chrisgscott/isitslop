@@ -78,6 +78,10 @@ def analyze_error_handling(files: list[ScannedFile]) -> list[dict]:
                 "fix_prompt": f"In {file.path} at line {line_num}, the catch block only console.logs the error. Add proper error handling — return an error response, show a user-facing message, or re-throw.",
             })
 
+        # console.log is a JS/TS concept — skip non-JS files
+        if file.language not in ("javascript", "typescript", "jsx", "tsx"):
+            continue
+
         console_count = len(CONSOLE_LOG.findall(file.content))
         if (
             console_count >= CONSOLE_LOG_THRESHOLD

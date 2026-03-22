@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { isRepoNameSafe } from '@/lib/content-filter'
 import Link from 'next/link'
 import type { LetterGrade } from '@/types/analysis'
 
@@ -39,6 +40,7 @@ export async function RecentReports() {
   const unique = data.filter((row) => {
     const key = `${row.repo_owner}/${row.repo_name}`
     if (seen.has(key)) return false
+    if (!isRepoNameSafe(row.repo_owner, row.repo_name)) return false
     seen.add(key)
     return true
   }).slice(0, 8)
