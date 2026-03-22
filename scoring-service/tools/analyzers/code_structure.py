@@ -273,6 +273,14 @@ PYTHON_CONTROL_FLOW = re.compile(
     r'^\s*(?:if |elif |else:|for |while |try:|except |finally:|with )'
 )
 
+# UI framework layout with-blocks that impose indentation but aren't control flow
+# Streamlit: st.sidebar, st.container, st.expander, st.columns, st.tabs, st.spinner, etc.
+# Gradio: gr.Row, gr.Column, gr.Blocks, gr.Tab, etc.
+PYTHON_LAYOUT_WITH = re.compile(
+    r'^\s*with\s+(?:st\.|gr\.|col\d|tab\d)',
+    re.IGNORECASE,
+)
+
 
 def _detect_max_control_flow_nesting(content: str) -> int:
     """Detect max control flow nesting depth, ignoring structural nesting."""
@@ -323,6 +331,9 @@ def _detect_max_control_flow_nesting_python(content: str) -> int:
             cf_indent_stack.pop()
 
         if PYTHON_CONTROL_FLOW.match(line):
+            # Skip UI framework layout with-blocks (Streamlit, Gradio)
+            if PYTHON_LAYOUT_WITH.match(line):
+                continue
             cf_indent_stack.append(indent)
             max_depth = max(max_depth, len(cf_indent_stack))
 

@@ -426,6 +426,51 @@ class TestCodeStructure:
         god_findings = [f for f in findings if "large" in f["issue"].lower()]
         assert len(god_findings) == 0
 
+    def test_python_nesting_ignores_streamlit_layout(self):
+        """Streamlit with-blocks (st.sidebar, st.expander, st.container) are layout, not control flow."""
+        content = """import streamlit as st
+
+def main():
+    with st.sidebar:
+        query = st.text_input("Search")
+        if query:
+            with st.spinner("Loading..."):
+                results = search(query)
+                if results:
+                    with st.expander("Citations"):
+                        for cite in results:
+                            st.write(cite)
+"""
+        file = ScannedFile(
+            path="app.py", extension=".py", language="python",
+            loc=len(content.splitlines()), content=content, is_test=False,
+        )
+        findings = analyze_code_structure([file])
+        nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
+        # Only 3 real control flow levels: if > if > for
+        # The 3 with-blocks are Streamlit layout, not control flow
+        assert len(nesting_findings) == 0
+
+    def test_python_nesting_counts_resource_with_blocks(self):
+        """Resource management with-blocks (open(), lock, connection) ARE control flow."""
+        content = """def process():
+    with open("file.txt") as f:
+        for line in f:
+            if line.strip():
+                with db.transaction():
+                    if validate(line):
+                        if save(line):
+                            log(line)
+"""
+        file = ScannedFile(
+            path="processor.py", extension=".py", language="python",
+            loc=len(content.splitlines()), content=content, is_test=False,
+        )
+        findings = analyze_code_structure([file])
+        nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
+        # 6 levels: with > for > if > with > if > if
+        assert len(nesting_findings) > 0
+
     def test_python_nesting_counts_control_flow_only(self):
         """Python nesting should count control flow depth, not raw indentation."""
         content = """class MyService:
