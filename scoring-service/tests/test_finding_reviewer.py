@@ -1,4 +1,4 @@
-from tools.finding_reviewer import _is_borderline, _extract_structural_summary, _classify_domain_buckets, _build_review_prompt
+from tools.finding_reviewer import _is_borderline, _extract_structural_summary, _classify_domain_buckets, _build_review_prompt, _parse_review_response
 from tools.file_scanner import ScannedFile
 
 
@@ -196,3 +196,37 @@ class TestPromptBuilder:
         assert "[2]" in user
         assert "a.ts" in user
         assert "b.ts" in user
+
+
+class TestResponseParser:
+    def test_parses_valid_json_array(self):
+        raw = '[{"finding_index": 1, "disposition": "confirm", "reason": "legit"}, {"finding_index": 2, "disposition": "likely_false_positive", "reason": "cohesive file"}]'
+        result = _parse_review_response(raw)
+        assert len(result) == 2
+        assert result[0]["disposition"] == "confirm"
+        assert result[1]["disposition"] == "likely_false_positive"
+
+    def test_extracts_json_from_markdown_fences(self):
+        raw = '```json\n[{"finding_index": 1, "disposition": "confirm", "reason": "real"}]\n```'
+        result = _parse_review_response(raw)
+        assert len(result) == 1
+        assert result[0]["disposition"] == "confirm"
+
+    def test_returns_empty_list_on_malformed_json(self):
+        raw = "this is not json at all"
+        result = _parse_review_response(raw)
+        assert result == []
+
+    def test_returns_empty_list_on_none(self):
+        result = _parse_review_response(None)
+        assert result == []
+
+    def test_returns_empty_list_on_empty_string(self):
+        result = _parse_review_response("")
+        assert result == []
+
+    def test_skips_entries_with_invalid_disposition(self):
+        raw = '[{"finding_index": 1, "disposition": "maybe", "reason": "unsure"}, {"finding_index": 2, "disposition": "confirm", "reason": "real"}]'
+        result = _parse_review_response(raw)
+        assert len(result) == 1
+        assert result[0]["finding_index"] == 2

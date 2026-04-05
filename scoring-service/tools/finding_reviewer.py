@@ -1,5 +1,11 @@
+import json
+import logging
 import re
 from tools.file_scanner import ScannedFile
+
+logger = logging.getLogger(__name__)
+
+VALID_DISPOSITIONS = {"confirm", "likely_false_positive"}
 
 # --- Import extraction regexes ---
 
@@ -118,6 +124,28 @@ def _build_review_prompt(findings_with_summaries: list[dict]) -> tuple[str, str]
         lines.append(f"      Domain buckets ({s['domain_bucket_count']}): {buckets_str}")
         lines.append("")
     return REVIEW_SYSTEM_PROMPT, "\n".join(lines)
+
+
+def _parse_review_response(raw: str | None) -> list[dict]:
+    """Parse the LLM's JSON response into a list of review entries."""
+    if not raw:
+        return []
+    text = raw.strip()
+    # Strip markdown code fences if present
+    if text.startswith("```"):
+        lines = text.splitlines()
+        text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        logger.warning("Finding reviewer: failed to parse LLM response as JSON")
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [
+        entry for entry in parsed
+        if isinstance(entry, dict) and entry.get("disposition") in VALID_DISPOSITIONS
+    ]
 
 
 def _is_borderline(finding: dict) -> bool:
