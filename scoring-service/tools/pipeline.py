@@ -13,6 +13,7 @@ from tools.analyzers.code_structure import analyze_code_structure
 from tools.analyzers.dependencies import analyze_dependencies
 from tools.scorer import calculate_scores, calculate_composite_score
 from tools.verdict_writer import generate_verdict
+from tools.finding_reviewer import review_borderline_findings
 from tools.db import update_analysis_status, save_analysis_results
 
 
@@ -41,6 +42,9 @@ def analyze_repo(
         findings.extend(analyze_security(scan.files))
         findings.extend(analyze_code_structure(scan.files))
         findings.extend(analyze_dependencies(scan.package_json, scan.total_loc, scan.has_lock_file))
+
+        # Review borderline findings with LLM
+        findings = review_borderline_findings(findings, scan.files)
 
         # Score
         scores = calculate_scores(findings, scan.total_files, scan.total_loc)
