@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch, MagicMock
 from tools.finding_reviewer import _is_borderline, _extract_structural_summary, _classify_domain_buckets, _build_review_prompt, _parse_review_response, review_borderline_findings
 from tools.file_scanner import ScannedFile
@@ -288,3 +289,63 @@ class TestReviewBorderlineFindings:
             client.chat.completions.create.side_effect = Exception("API down")
             result = review_borderline_findings(findings, files)
         assert "llm_review" not in result[0]
+
+
+class TestIntegration:
+    def test_full_review_flow_with_mixed_findings(self):
+        """End-to-end: mixed findings go through review, only borderline ones get annotated."""
+        cohesive_content = "\n".join([
+            "import { db } from '@/lib/db'",
+            "import { Money } from '@/utils/money'",
+            "export function calculateTotal() { return db.query() }",
+            "export function applyDiscount() { return Money.subtract() }",
+        ] + ["// padding line"] * 400)
+
+        messy_content = "\n".join([
+            "import express from 'express'",
+            "import { db } from '@/lib/db'",
+            "import { sendEmail } from '@/services/email'",
+            "import { auth } from '@/auth'",
+            "import stripe from 'stripe'",
+            "import { S3 } from 'aws-sdk'",
+            "export function handleRoute() {}",
+            "export function queryDB() {}",
+            "export function sendNotification() {}",
+            "export function processPayment() {}",
+            "export function uploadFile() {}",
+        ] + ["// padding line"] * 400)
+
+        files = [
+            ScannedFile(path="src/pricing/calc.ts", extension=".ts", language="typescript",
+                       loc=404, content=cohesive_content, is_test=False),
+            ScannedFile(path="src/api/kitchen-sink.ts", extension=".ts", language="typescript",
+                       loc=411, content=messy_content, is_test=False),
+        ]
+
+        findings = [
+            {"dimension": "code_structure", "severity": "low", "file": "src/pricing/calc.ts",
+             "issue": "Large file (404 code lines)", "evidence": "404 code lines"},
+            {"dimension": "code_structure", "severity": "low", "file": "src/api/kitchen-sink.ts",
+             "issue": "Large file (411 code lines)", "evidence": "411 code lines"},
+            {"dimension": "security", "severity": "critical", "file": "config.ts",
+             "issue": "Hardcoded secret", "evidence": "found key"},
+        ]
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = json.dumps([
+            {"finding_index": 1, "disposition": "likely_false_positive", "reason": "single domain, cohesive exports"},
+            {"finding_index": 2, "disposition": "confirm", "reason": "6 domain buckets, low cohesion"},
+        ])
+
+        with patch("tools.finding_reviewer.OpenAI") as MockOpenAI:
+            client = MockOpenAI.return_value
+            client.chat.completions.create.return_value = mock_response
+            result = review_borderline_findings(findings, files)
+
+        # Cohesive file: marked as likely false positive
+        assert result[0]["llm_review"]["disposition"] == "likely_false_positive"
+        # Kitchen sink file: confirmed as real problem
+        assert result[1]["llm_review"]["disposition"] == "confirm"
+        # Critical security finding: no review at all
+        assert "llm_review" not in result[2]
