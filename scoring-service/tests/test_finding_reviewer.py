@@ -1,4 +1,4 @@
-from tools.finding_reviewer import _is_borderline, _extract_structural_summary
+from tools.finding_reviewer import _is_borderline, _extract_structural_summary, _classify_domain_buckets
 from tools.file_scanner import ScannedFile
 
 
@@ -120,3 +120,29 @@ class TestBorderlineFilter:
     def test_finding_with_no_file_is_not_borderline(self):
         finding = {"dimension": "code_structure", "severity": "low", "file": None}
         assert _is_borderline(finding) is False
+
+
+class TestDomainBuckets:
+    def test_single_domain(self):
+        imports = ["@/lib/db", "@/utils/money", "@/types/pricing"]
+        buckets = _classify_domain_buckets(imports)
+        assert "data" in buckets
+        assert len(buckets) == 1
+
+    def test_multiple_domains(self):
+        imports = ["express", "@/lib/db", "@/auth/middleware", "@/services/email"]
+        buckets = _classify_domain_buckets(imports)
+        assert "http" in buckets
+        assert "data" in buckets
+        assert "auth" in buckets
+        assert "messaging" in buckets
+
+    def test_no_matching_domains(self):
+        imports = ["lodash", "dayjs", "./constants"]
+        buckets = _classify_domain_buckets(imports)
+        assert len(buckets) == 0
+
+    def test_payment_domain(self):
+        imports = ["stripe", "@/utils/billing"]
+        buckets = _classify_domain_buckets(imports)
+        assert "payment" in buckets
