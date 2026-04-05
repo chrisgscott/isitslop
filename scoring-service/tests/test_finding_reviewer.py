@@ -1,4 +1,5 @@
-from tools.finding_reviewer import _is_borderline, _extract_structural_summary, _classify_domain_buckets, _build_review_prompt, _parse_review_response
+from unittest.mock import patch, MagicMock
+from tools.finding_reviewer import _is_borderline, _extract_structural_summary, _classify_domain_buckets, _build_review_prompt, _parse_review_response, review_borderline_findings
 from tools.file_scanner import ScannedFile
 
 
@@ -230,3 +231,60 @@ class TestResponseParser:
         result = _parse_review_response(raw)
         assert len(result) == 1
         assert result[0]["finding_index"] == 2
+
+
+class TestReviewBorderlineFindings:
+    def _make_scanned_file(self, path, content="export function foo() {}", lang="typescript"):
+        return ScannedFile(
+            path=path, extension=".ts", language=lang,
+            loc=len(content.splitlines()), content=content, is_test=False,
+        )
+
+    def test_annotates_borderline_findings(self):
+        files = [self._make_scanned_file("src/big.ts", "import { db } from '@/lib/db'\nexport function query() {}\n" * 200)]
+        findings = [
+            {"dimension": "code_structure", "severity": "low", "file": "src/big.ts", "issue": "Large file", "evidence": "420 lines"},
+            {"dimension": "security", "severity": "high", "file": "config.ts", "issue": "Hardcoded secret", "evidence": "found key"},
+        ]
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = '[{"finding_index": 1, "disposition": "likely_false_positive", "reason": "cohesive"}]'
+
+        with patch("tools.finding_reviewer.OpenAI") as MockOpenAI:
+            client = MockOpenAI.return_value
+            client.chat.completions.create.return_value = mock_response
+            result = review_borderline_findings(findings, files)
+
+        assert "llm_review" in result[0]
+        assert result[0]["llm_review"]["disposition"] == "likely_false_positive"
+        assert "llm_review" not in result[1]  # high severity, not reviewed
+
+    def test_skips_llm_call_when_no_borderline_findings(self):
+        files = []
+        findings = [
+            {"dimension": "security", "severity": "high", "file": "config.ts", "issue": "Secret", "evidence": "key"},
+        ]
+        with patch("tools.finding_reviewer.OpenAI") as MockOpenAI:
+            result = review_borderline_findings(findings, files)
+            MockOpenAI.assert_not_called()
+        assert "llm_review" not in result[0]
+
+    def test_returns_findings_unchanged_on_missing_api_key(self):
+        files = [self._make_scanned_file("src/big.ts")]
+        findings = [
+            {"dimension": "code_structure", "severity": "low", "file": "src/big.ts", "issue": "Large file", "evidence": "420 lines"},
+        ]
+        with patch("tools.finding_reviewer.OpenAI", side_effect=Exception("No API key")):
+            result = review_borderline_findings(findings, files)
+        assert "llm_review" not in result[0]
+
+    def test_returns_findings_unchanged_on_api_error(self):
+        files = [self._make_scanned_file("src/big.ts")]
+        findings = [
+            {"dimension": "code_structure", "severity": "low", "file": "src/big.ts", "issue": "Large file", "evidence": "420 lines"},
+        ]
+        with patch("tools.finding_reviewer.OpenAI") as MockOpenAI:
+            client = MockOpenAI.return_value
+            client.chat.completions.create.side_effect = Exception("API down")
+            result = review_borderline_findings(findings, files)
+        assert "llm_review" not in result[0]

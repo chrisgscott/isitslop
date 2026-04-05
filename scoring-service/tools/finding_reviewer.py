@@ -1,6 +1,8 @@
 import json
 import logging
+import os
 import re
+from openai import OpenAI
 from tools.file_scanner import ScannedFile
 
 logger = logging.getLogger(__name__)
@@ -159,3 +161,69 @@ def _is_borderline(finding: dict) -> bool:
     if severity == "medium" and dimension == "code_structure":
         return True
     return False
+
+
+DEFAULT_MODEL = "gpt-4.1-mini"
+
+
+def review_borderline_findings(
+    findings: list[dict],
+    files: list[ScannedFile],
+    model: str | None = None,
+) -> list[dict]:
+    """Review borderline findings with an LLM and annotate with dispositions.
+
+    Returns the same findings list with `llm_review` annotations added
+    to borderline findings. Non-borderline findings are untouched.
+    On any failure, returns findings unchanged.
+    """
+    # Build file lookup for quick access
+    file_map = {f.path: f for f in files}
+
+    # Identify borderline findings and pair with structural summaries
+    borderline_items = []
+    borderline_indices = []
+    for i, finding in enumerate(findings):
+        if not _is_borderline(finding):
+            continue
+        scanned_file = file_map.get(finding["file"])
+        if scanned_file is None:
+            continue
+        summary = _extract_structural_summary(scanned_file)
+        borderline_items.append({"finding": finding, "summary": summary})
+        borderline_indices.append(i)
+
+    if not borderline_items:
+        return findings
+
+    # Call LLM
+    try:
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        system_prompt, user_prompt = _build_review_prompt(borderline_items)
+        response = client.chat.completions.create(
+            model=model or DEFAULT_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0,
+            max_tokens=1000,
+        )
+        raw_content = response.choices[0].message.content
+    except Exception:
+        logger.warning("Finding reviewer: LLM call failed, returning findings unchanged")
+        return findings
+
+    # Parse and annotate
+    reviews = _parse_review_response(raw_content)
+    review_map = {r["finding_index"]: r for r in reviews}
+
+    for prompt_index, findings_index in enumerate(borderline_indices, 1):
+        review = review_map.get(prompt_index)
+        if review:
+            findings[findings_index]["llm_review"] = {
+                "disposition": review["disposition"],
+                "reason": review.get("reason", ""),
+            }
+
+    return findings
