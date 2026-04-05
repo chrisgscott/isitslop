@@ -20,6 +20,11 @@ export type DimensionScores = Record<DimensionKey, DimensionScore>;
 
 export type FindingSeverity = 'critical' | 'high' | 'medium' | 'low';
 
+export interface LlmReview {
+  disposition: 'confirm' | 'likely_false_positive';
+  reason: string;
+}
+
 export interface Finding {
   dimension: DimensionKey;
   severity: FindingSeverity;
@@ -28,6 +33,7 @@ export interface Finding {
   issue: string;
   evidence: string;
   fix_prompt: string;
+  llm_review?: LlmReview;
 }
 
 export interface AnalysisMetadata {

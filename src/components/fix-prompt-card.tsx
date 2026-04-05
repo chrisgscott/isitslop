@@ -114,6 +114,14 @@ export function FixPromptCard({ finding, analysisId, originalIndex }: FixPromptC
         {finding.fix_prompt}
       </div>
 
+      {/* LLM reviewer annotation */}
+      {finding.llm_review?.disposition === 'likely_false_positive' && (
+        <div className="flex items-start gap-2 text-xs font-[family-name:var(--font-mono)] text-[var(--color-ink-light)] bg-[var(--color-paper)] border border-dashed border-[var(--color-paper-line)] p-2.5 leading-relaxed">
+          <span className="shrink-0 uppercase tracking-wider text-[10px] text-[var(--color-ink-faint)]">Reviewer note:</span>
+          <span>Likely not a real issue. {finding.llm_review.reason}</span>
+        </div>
+      )}
+
       {/* Flag button / input / confirmation */}
       {flagState === 'idle' && (
         <button
