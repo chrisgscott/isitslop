@@ -89,6 +89,37 @@ def _extract_structural_summary(file: ScannedFile) -> dict:
     }
 
 
+REVIEW_SYSTEM_PROMPT = """You review code analysis findings to identify likely false positives.
+You receive borderline findings with structural metadata about each file.
+Your job: determine if each finding reflects a real problem or if the analyzer was too aggressive.
+
+Respond with a JSON array. Each element:
+{"finding_index": 1, "disposition": "confirm" or "likely_false_positive", "reason": "one sentence"}
+
+Do not invent new findings. Do not comment on findings not listed.
+If unsure, confirm the finding -- err toward the analyzer being right."""
+
+
+def _build_review_prompt(findings_with_summaries: list[dict]) -> tuple[str, str]:
+    """Build the system and user prompts for the LLM review call."""
+    lines = ["Review these borderline findings:", ""]
+    for i, item in enumerate(findings_with_summaries, 1):
+        f = item["finding"]
+        s = item["summary"]
+        lines.append(f"[{i}] {f['dimension']} / {f['severity']}: {f['issue']}")
+        lines.append(f"    File: {f['file']}")
+        lines.append(f"    Evidence: {f['evidence']}")
+        imports_str = ", ".join(s["imports"][:10]) or "(none)"
+        exports_str = ", ".join(s["exports"][:10]) or "(none)"
+        buckets_str = ", ".join(sorted(s["domain_buckets"])) or "(none)"
+        lines.append(f"    Structural summary:")
+        lines.append(f"      Imports ({s['import_count']}): {imports_str}")
+        lines.append(f"      Exports ({s['export_count']}): {exports_str}")
+        lines.append(f"      Domain buckets ({s['domain_bucket_count']}): {buckets_str}")
+        lines.append("")
+    return REVIEW_SYSTEM_PROMPT, "\n".join(lines)
+
+
 def _is_borderline(finding: dict) -> bool:
     """A finding is borderline if the deterministic analyzer has low confidence."""
     if finding.get("file") is None:

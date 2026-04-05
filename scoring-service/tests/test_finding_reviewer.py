@@ -1,4 +1,4 @@
-from tools.finding_reviewer import _is_borderline, _extract_structural_summary, _classify_domain_buckets
+from tools.finding_reviewer import _is_borderline, _extract_structural_summary, _classify_domain_buckets, _build_review_prompt
 from tools.file_scanner import ScannedFile
 
 
@@ -146,3 +146,53 @@ class TestDomainBuckets:
         imports = ["stripe", "@/utils/billing"]
         buckets = _classify_domain_buckets(imports)
         assert "payment" in buckets
+
+
+class TestPromptBuilder:
+    def test_builds_numbered_finding_list(self):
+        findings_with_summaries = [
+            {
+                "finding": {
+                    "dimension": "code_structure",
+                    "severity": "low",
+                    "file": "src/pricing/calc.ts",
+                    "issue": "Large file (420 code lines) -- barely over threshold",
+                    "evidence": "420 code lines, threshold is 400",
+                },
+                "summary": {
+                    "imports": ["@/lib/db", "@/utils/money"],
+                    "exports": ["calculateTotal", "applyDiscount"],
+                    "import_count": 2,
+                    "export_count": 2,
+                    "domain_buckets": {"data", "payment"},
+                    "domain_bucket_count": 2,
+                },
+            },
+        ]
+        system, user = _build_review_prompt(findings_with_summaries)
+        assert "false positive" in system.lower()
+        assert "JSON array" in system
+        assert "[1]" in user
+        assert "src/pricing/calc.ts" in user
+        assert "420 code lines" in user
+        assert "Imports (2)" in user
+        assert "Exports (2)" in user
+        assert "data" in user
+        assert "payment" in user
+
+    def test_multiple_findings_numbered_sequentially(self):
+        findings_with_summaries = [
+            {
+                "finding": {"dimension": "code_structure", "severity": "low", "file": "a.ts", "issue": "issue a", "evidence": "ev a"},
+                "summary": {"imports": [], "exports": [], "import_count": 0, "export_count": 0, "domain_buckets": set(), "domain_bucket_count": 0},
+            },
+            {
+                "finding": {"dimension": "error_handling", "severity": "low", "file": "b.ts", "issue": "issue b", "evidence": "ev b"},
+                "summary": {"imports": [], "exports": [], "import_count": 0, "export_count": 0, "domain_buckets": set(), "domain_bucket_count": 0},
+            },
+        ]
+        system, user = _build_review_prompt(findings_with_summaries)
+        assert "[1]" in user
+        assert "[2]" in user
+        assert "a.ts" in user
+        assert "b.ts" in user
