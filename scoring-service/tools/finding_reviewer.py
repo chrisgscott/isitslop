@@ -66,7 +66,8 @@ def _extract_exports(content: str, language: str | None) -> list[str]:
             names.append("default")
         return names
     if language == "python":
-        return [m.group(2) for m in _PY_DEF.finditer(content) if m.start() == 0 or content[m.start() - 1] == "\n"]
+        return [m.group(2) for m in _PY_DEF.finditer(content)
+                if content[:m.start()].rsplit("\n", 1)[-1] == ""]
     if language == "go":
         return _GO_PUBLIC.findall(content)
     return []

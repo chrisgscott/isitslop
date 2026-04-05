@@ -85,6 +85,23 @@ def delete_user():
         assert "_helper" not in summary["exports"]
         assert summary["export_count"] == 3
 
+    def test_excludes_methods_after_blank_line_in_class(self):
+        content = """class Foo:
+    def method_one(self):
+        pass
+
+    def method_two(self):
+        pass
+
+def top_level():
+    pass"""
+        summary = _extract_structural_summary(_make_file("x.py", content, lang="python", ext=".py"))
+        assert "Foo" in summary["exports"]
+        assert "top_level" in summary["exports"]
+        assert "method_one" not in summary["exports"]
+        assert "method_two" not in summary["exports"]
+        assert summary["export_count"] == 2
+
     def test_extracts_go_public_symbols(self):
         content = """func HandleRequest() {}
 func internalHelper() {}
