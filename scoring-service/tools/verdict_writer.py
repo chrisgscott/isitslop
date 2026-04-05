@@ -75,11 +75,16 @@ def build_verdict_prompt(
     sorted_findings = sorted(findings, key=lambda f: severity_order.get(f.get("severity", "low"), 4))
     top = sorted_findings[:10]
 
-    top_findings = "\n".join([
-        f"- [{f.get('severity', 'medium').upper()}] {_sanitize_for_prompt(f['issue'])}"
-        + (f" ({_sanitize_for_prompt(f['file'])})" if f.get('file') else "")
-        for f in top
-    ])
+    finding_lines = []
+    for f in top:
+        line = f"- [{f.get('severity', 'medium').upper()}] {_sanitize_for_prompt(f['issue'])}"
+        if f.get('file'):
+            line += f" ({_sanitize_for_prompt(f['file'])})"
+        review = f.get("llm_review")
+        if review and review.get("disposition") == "likely_false_positive":
+            line += f"\n  [REVIEWER NOTE: likely false positive -- {_sanitize_for_prompt(review.get('reason', ''))}]"
+        finding_lines.append(line)
+    top_findings = "\n".join(finding_lines)
 
     return USER_PROMPT_TEMPLATE.format(
         repo_name=_sanitize_for_prompt(repo_name, 100),
