@@ -73,6 +73,7 @@ NON_CODE_EXTENSIONS = {
     ".lock",
     ".svg",  # SVG files are markup, not code logic
     ".css", ".scss", ".less",  # Stylesheets aren't code complexity
+    ".html", ".htm",  # HTML is markup, not code logic
 }
 
 # Directories containing vendored/third-party code
