@@ -16,6 +16,8 @@ FRAMEWORK_CONVENTIONS = {
     "mod", "lib", "main", "init", "__init__",
     "schema", "model", "models", "migration",
     "seed", "fixture", "fixtures",
+    # Django conventions
+    "urls", "views", "serializers", "admin", "apps", "managers",
     # Monorepo files that repeat per workspace
     "package", "tsconfig", "eslintrc", "prettierrc",
     # Dotted variants (rsplit keeps the leading dot)
