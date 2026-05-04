@@ -17,6 +17,13 @@ BUILD_CONFIG_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Documentation example/include files and generated doc assets
+# console.log and catch blocks in these are demo code or bundled doc tooling
+DOCS_ASSET_PATTERN = re.compile(
+    r'(?:^|/)docs?/(?:api/assets|_includes|_snippets)/',
+    re.IGNORECASE,
+)
+
 # Pattern to check if a match position is inside a string literal
 STRING_CONTEXT = re.compile(r'''["'`].*catch\s*\(''')
 
@@ -39,6 +46,9 @@ def analyze_error_handling(files: list[ScannedFile]) -> list[dict]:
         if file.is_test or file.is_generated or file.is_vendored or not file.language:
             continue
         if file.extension in NON_CODE_EXTENSIONS:
+            continue
+        # Skip documentation assets (bundled doc-tool JS, example includes)
+        if DOCS_ASSET_PATTERN.search(file.path):
             continue
 
         for match in EMPTY_CATCH.finditer(file.content):
