@@ -17,6 +17,12 @@ BUILD_CONFIG_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Seed/fixture files where console.log is progress output and catch-log is acceptable
+SEED_FILE_PATTERN = re.compile(
+    r'(?:^|/)(?:prisma/)?seed[\-_.]|(?:^|/)seeds?/',
+    re.IGNORECASE,
+)
+
 # Documentation example/include files and generated doc assets
 # console.log and catch blocks in these are demo code or bundled doc tooling
 DOCS_ASSET_PATTERN = re.compile(
@@ -49,6 +55,9 @@ def analyze_error_handling(files: list[ScannedFile]) -> list[dict]:
             continue
         # Skip documentation assets (bundled doc-tool JS, example includes)
         if DOCS_ASSET_PATTERN.search(file.path):
+            continue
+        # Skip seed/fixture files (console.log for progress and catch-log are standard)
+        if SEED_FILE_PATTERN.search(file.path):
             continue
 
         for match in EMPTY_CATCH.finditer(file.content):
@@ -97,6 +106,7 @@ def analyze_error_handling(files: list[ScannedFile]) -> list[dict]:
             console_count >= CONSOLE_LOG_THRESHOLD
             and not SCRIPT_DIR_PATTERN.search(file.path)
             and not BUILD_CONFIG_PATTERN.search(file.path)
+            and not SEED_FILE_PATTERN.search(file.path)
         ):
             findings.append({
                 "dimension": "error_handling",

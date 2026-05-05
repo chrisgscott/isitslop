@@ -78,6 +78,20 @@ class TestErrorHandling:
         assert len(catch_findings) == 1
         assert catch_findings[0]["severity"] == "medium"
 
+    def test_skips_seed_files(self):
+        """Seed files use console.log for progress and catch-log for graceful seeding."""
+        content = "\n".join([f"console.log('seeding item {i}')" for i in range(20)])
+        content += "\ntry { await db.insert(data) } catch (e) { console.log(e) }"
+        for seed_path in ["prisma/seed.js", "prisma/seed.ts", "seeds/users.ts", "db/seed-data.js"]:
+            ext = "." + seed_path.split(".")[-1]
+            lang = "typescript" if ext in (".ts",) else "javascript"
+            file = ScannedFile(
+                path=seed_path, extension=ext, language=lang,
+                loc=len(content.splitlines()), content=content, is_test=False,
+            )
+            findings = analyze_error_handling([file])
+            assert len(findings) == 0, f"Should skip {seed_path}, got {findings}"
+
     def test_ignores_catch_inside_string_literal(self):
         """Pattern matches inside string literals should be ignored."""
         content = '"Searching for error handling (found: catch(e) {})..."'
