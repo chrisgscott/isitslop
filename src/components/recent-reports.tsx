@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
 import { isRepoNameSafe } from '@/lib/content-filter'
 import Link from 'next/link'
 import type { LetterGrade } from '@/types/analysis'
@@ -22,16 +22,13 @@ function gradeClass(grade: LetterGrade): string {
 }
 
 export async function RecentReports() {
-  const supabase = createServiceClient()
-
-  // Get most recent completed analysis per repo (deduplicated)
-  const { data } = await supabase
-    .from('analyses')
-    .select('id, repo_owner, repo_name, slop_score, analyzed_at')
-    .eq('status', 'complete')
-    .not('slop_score', 'is', null)
-    .order('analyzed_at', { ascending: false })
-    .limit(50)
+  const { rows: data } = await db.query(
+    `SELECT id, repo_owner, repo_name, slop_score, analyzed_at
+     FROM analyses
+     WHERE status = 'complete' AND slop_score IS NOT NULL
+     ORDER BY analyzed_at DESC
+     LIMIT 50`
+  )
 
   if (!data || data.length === 0) return null
 

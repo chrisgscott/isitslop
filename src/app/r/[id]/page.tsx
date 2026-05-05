@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import { SlopScore } from '@/components/slop-score'
 import { DimensionGrades } from '@/components/dimension-grades'
@@ -18,12 +18,11 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params
-  const supabase = createServiceClient()
-  const { data } = await supabase
-    .from('analyses')
-    .select('repo_owner, repo_name, slop_score')
-    .eq('id', id)
-    .single()
+  const { rows } = await db.query(
+    `SELECT repo_owner, repo_name, slop_score FROM analyses WHERE id = $1`,
+    [id]
+  )
+  const data = rows[0]
 
   if (!data) return { title: 'IsItSlop' }
 
@@ -41,17 +40,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ResultPage({ params }: PageProps) {
   const { id } = await params
-  const supabase = createServiceClient()
+  const { rows } = await db.query(
+    `SELECT * FROM analyses WHERE id = $1`,
+    [id]
+  )
 
-  const { data, error } = await supabase
-    .from('analyses')
-    .select('*')
-    .eq('id', id)
-    .single()
-
-  if (error || !data || data.status !== 'complete') {
+  if (rows.length === 0 || rows[0].status !== 'complete') {
     notFound()
   }
+
+  const data = rows[0]
 
   const analysis = data as Analysis
   const overallGrade = 100 - (analysis.slop_score ?? 0)

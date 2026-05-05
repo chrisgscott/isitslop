@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
 import type { Analysis, DimensionKey, Finding } from '@/types/analysis'
 
 export interface HistoryRun {
@@ -25,17 +25,16 @@ export async function getRepoHistory(
   repoOwner: string,
   repoName: string,
 ): Promise<RepoHistory | null> {
-  const supabase = createServiceClient()
-
-  const { data } = await supabase
-    .from('analyses')
-    .select('id, analyzed_at, slop_score, scores, receipts')
-    .eq('repo_owner', repoOwner)
-    .eq('repo_name', repoName)
-    .eq('status', 'complete')
-    .not('slop_score', 'is', null)
-    .not('scores', 'is', null)
-    .order('analyzed_at', { ascending: true })
+  const { rows: data } = await db.query(
+    `SELECT id, analyzed_at, slop_score, scores, receipts
+     FROM analyses
+     WHERE repo_owner = $1 AND repo_name = $2
+       AND status = 'complete'
+       AND slop_score IS NOT NULL
+       AND scores IS NOT NULL
+     ORDER BY analyzed_at ASC`,
+    [repoOwner, repoName]
+  )
 
   if (!data || data.length < 2) return null
 

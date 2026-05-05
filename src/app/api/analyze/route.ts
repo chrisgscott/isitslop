@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
-import { createServiceClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
 import { parseGitHubUrl, buildRepoUrl } from '@/lib/github'
 import { checkAnalyzeRateLimit } from '@/lib/rate-limit'
 
@@ -30,21 +30,15 @@ export async function POST(request: NextRequest) {
   }
 
   const id = nanoid(10)
-  const supabase = createServiceClient()
 
-  const { error: insertError } = await supabase
-    .from('analyses')
-    .insert({
-      id,
-      repo_url: buildRepoUrl(parsed),
-      repo_owner: parsed.owner,
-      repo_name: parsed.repo,
-      repo_branch: parsed.branch,
-      status: 'pending',
-    })
-
-  if (insertError) {
-    console.error('Failed to create analysis record:', insertError)
+  try {
+    await db.query(
+      `INSERT INTO analyses (id, repo_url, repo_owner, repo_name, repo_branch, status)
+       VALUES ($1, $2, $3, $4, $5, 'pending')`,
+      [id, buildRepoUrl(parsed), parsed.owner, parsed.repo, parsed.branch]
+    )
+  } catch (err) {
+    console.error('Failed to create analysis record:', err)
     return NextResponse.json({ error: 'Failed to start analysis' }, { status: 500 })
   }
 

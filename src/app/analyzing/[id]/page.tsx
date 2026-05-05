@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'motion/react'
 
 const SNARKY_MESSAGES = [
@@ -50,17 +49,13 @@ export default function AnalyzingPage() {
         setIsSlow(true)
       }
 
-      const { data, error: fetchError } = await supabase
-        .from('analyses')
-        .select('status, error_message')
-        .eq('id', id)
-        .single()
-
-      if (fetchError) {
+      const res = await fetch(`/api/status?id=${id}`)
+      if (!res.ok) {
         setError('Could not find this analysis.')
         clearInterval(poll)
         return
       }
+      const data = await res.json()
 
       if (data.status === 'complete') {
         clearInterval(poll)
