@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to start analysis' }, { status: 500 })
   }
 
-  // Fire webhook to Modal (fire-and-forget)
-  const webhookUrl = process.env.MODAL_WEBHOOK_URL
+  // Fire webhook to scoring service (fire-and-forget)
+  const webhookUrl = process.env.SCORING_SERVICE_URL
   if (webhookUrl) {
     fetch(webhookUrl, {
       method: 'POST',

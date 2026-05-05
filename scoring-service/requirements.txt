@@ -1,6 +1,5 @@
-modal>=0.70.0
 fastapi[standard]
+uvicorn
 openai
-supabase>=2.0.0
+psycopg2-binary
 httpx
-pytest
