@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Caveat, IBM_Plex_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
+
+const GA_MEASUREMENT_ID = "G-HB8S0L6G0P";
 
 const instrumentSerif = Instrument_Serif({
   variable: "--font-serif",
@@ -44,6 +47,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
+      </head>
       <body
         className={`${instrumentSerif.variable} ${caveat.variable} ${ibmPlexMono.variable} antialiased`}
       >
