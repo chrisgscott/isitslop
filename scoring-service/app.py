@@ -20,7 +20,7 @@ def health():
 async def analyze_webhook(request: Request):
     body = await request.json()
 
-    expected = os.environ.get("MODAL_WEBHOOK_SECRET", "")
+    expected = os.environ.get("SCORING_WEBHOOK_SECRET", "")
     token = (body.get("auth_token") or "").strip()
     if not expected or not hmac.compare_digest(token, expected):
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
