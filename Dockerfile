@@ -25,4 +25,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
+# Next.js standalone server.js binds to process.env.HOSTNAME; Docker sets it to
+# the container ID, so without this it listens on the container-ID interface and
+# refuses localhost:3000 (breaks Coolify's healthcheck). Bind all interfaces.
+ENV HOSTNAME=0.0.0.0
 CMD ["node", "server.js"]
