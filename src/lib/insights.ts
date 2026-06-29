@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
 import type { DimensionKey, DimensionScores, Finding, LetterGrade } from '@/types/analysis'
 
 const DIMENSION_LABELS: Record<DimensionKey, string> = {
@@ -32,14 +32,10 @@ export interface InsightsData {
 }
 
 export async function getInsights(): Promise<InsightsData | null> {
-  const supabase = createServiceClient()
-
-  const { data } = await supabase
-    .from('analyses')
-    .select('slop_score, scores, receipts')
-    .eq('status', 'complete')
-    .not('slop_score', 'is', null)
-    .not('scores', 'is', null)
+  const { rows: data } = await db.query(
+    `SELECT slop_score, scores, receipts FROM analyses
+     WHERE status = 'complete' AND slop_score IS NOT NULL AND scores IS NOT NULL`
+  )
 
   if (!data || data.length === 0) return null
 

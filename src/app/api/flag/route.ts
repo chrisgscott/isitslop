@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
-import { createServiceClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
 import { checkFlagRateLimit } from '@/lib/rate-limit'
 
 function hashIp(ip: string): string {
@@ -38,55 +38,45 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'reason_too_long', message: 'Reason must be 500 characters or fewer' }, { status: 400 })
   }
 
-  const supabase = createServiceClient()
+  try {
+    const { rows } = await db.query(
+      `SELECT status, receipts FROM analyses WHERE id = $1`,
+      [analysis_id]
+    )
 
-  // Fetch the analysis to validate and pull finding data
-  const { data: analysis, error: fetchError } = await supabase
-    .from('analyses')
-    .select('status, receipts')
-    .eq('id', analysis_id)
-    .single()
+    if (rows.length === 0) {
+      return NextResponse.json({ error: 'analysis_not_found' }, { status: 400 })
+    }
 
-  if (fetchError || !analysis) {
-    return NextResponse.json({ error: 'analysis_not_found' }, { status: 400 })
-  }
+    const analysis = rows[0]
 
-  if (analysis.status !== 'complete') {
-    return NextResponse.json({ error: 'analysis_not_found' }, { status: 400 })
-  }
+    if (analysis.status !== 'complete') {
+      return NextResponse.json({ error: 'analysis_not_found' }, { status: 400 })
+    }
 
-  const receipts = analysis.receipts as Array<{
-    dimension: string; severity: string; file: string | null; issue: string
-  }> | null
+    const receipts = analysis.receipts as Array<{
+      dimension: string; severity: string; file: string | null; issue: string
+    }> | null
 
-  if (!receipts || finding_index >= receipts.length) {
-    return NextResponse.json({ error: 'finding_index_out_of_range' }, { status: 400 })
-  }
+    if (!receipts || finding_index >= receipts.length) {
+      return NextResponse.json({ error: 'finding_index_out_of_range' }, { status: 400 })
+    }
 
-  const finding = receipts[finding_index]
-  const ipHash = hashIp(ip)
+    const finding = receipts[finding_index]
+    const ipHash = hashIp(ip)
 
-  const { error: insertError } = await supabase
-    .from('finding_flags')
-    .insert({
-      analysis_id,
-      finding_index,
-      finding_issue: finding.issue,
-      finding_file: finding.file,
-      finding_severity: finding.severity,
-      dimension: finding.dimension,
-      reason: reason || null,
-      ip_hash: ipHash,
-    })
+    await db.query(
+      `INSERT INTO finding_flags (analysis_id, finding_index, finding_issue, finding_file, finding_severity, dimension, reason, ip_hash)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [analysis_id, finding_index, finding.issue, finding.file, finding.severity, finding.dimension, reason || null, ipHash]
+    )
 
-  if (insertError) {
-    // Unique constraint violation = already flagged
-    if (insertError.code === '23505') {
+    return NextResponse.json({ flagged: true }, { status: 201 })
+  } catch (err: unknown) {
+    if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23505') {
       return NextResponse.json({ already_flagged: true }, { status: 200 })
     }
-    console.error('Failed to insert flag:', insertError)
+    console.error('Failed to insert flag:', err)
     return NextResponse.json({ error: 'Failed to save flag' }, { status: 500 })
   }
-
-  return NextResponse.json({ flagged: true }, { status: 201 })
 }

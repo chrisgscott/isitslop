@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
 
 function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -7,13 +7,10 @@ function formatNumber(n: number): string {
 }
 
 export async function SnarkyStats() {
-  const supabase = createServiceClient()
-
-  const { data } = await supabase
-    .from('analyses')
-    .select('slop_score, metadata, scores')
-    .eq('status', 'complete')
-    .not('slop_score', 'is', null)
+  const { rows: data } = await db.query(
+    `SELECT slop_score, metadata, scores FROM analyses
+     WHERE status = 'complete' AND slop_score IS NOT NULL`
+  )
 
   if (!data || data.length < 3) return null
 

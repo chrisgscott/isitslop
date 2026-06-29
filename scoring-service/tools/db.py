@@ -1,35 +1,51 @@
 import os
+import json
 from datetime import datetime, timezone
-from supabase import create_client
+import psycopg2
 
 
-def get_supabase():
-    url = os.environ["SUPABASE_URL"]
-    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-    return create_client(url, key)
+def get_conn():
+    return psycopg2.connect(os.environ["DATABASE_URL"])
 
 
 def update_analysis_status(analysis_id: str, status: str):
-    sb = get_supabase()
-    sb.table("analyses").update({"status": status}).eq("id", analysis_id).execute()
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE analyses SET status = %s WHERE id = %s",
+                (status, analysis_id),
+            )
 
 
 def update_analysis_error(analysis_id: str, error_message: str):
-    sb = get_supabase()
-    sb.table("analyses").update({
-        "status": "error",
-        "error_message": error_message,
-    }).eq("id", analysis_id).execute()
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE analyses SET status = 'error', error_message = %s WHERE id = %s",
+                (error_message, analysis_id),
+            )
 
 
 def save_analysis_results(analysis_id: str, results: dict):
-    sb = get_supabase()
-    sb.table("analyses").update({
-        "status": "complete",
-        "slop_score": results["slop_score"],
-        "scores": results["scores"],
-        "verdict": results["verdict"],
-        "receipts": results["receipts"],
-        "metadata": results["metadata"],
-        "analyzed_at": datetime.now(timezone.utc).isoformat(),
-    }).eq("id", analysis_id).execute()
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """UPDATE analyses SET
+                    status = 'complete',
+                    slop_score = %s,
+                    scores = %s,
+                    verdict = %s,
+                    receipts = %s,
+                    metadata = %s,
+                    analyzed_at = %s
+                WHERE id = %s""",
+                (
+                    results["slop_score"],
+                    json.dumps(results["scores"]),
+                    results["verdict"],
+                    json.dumps(results["receipts"]),
+                    json.dumps(results["metadata"]),
+                    datetime.now(timezone.utc).isoformat(),
+                    analysis_id,
+                ),
+            )

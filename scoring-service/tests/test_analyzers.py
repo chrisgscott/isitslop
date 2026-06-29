@@ -78,12 +78,41 @@ class TestErrorHandling:
         assert len(catch_findings) == 1
         assert catch_findings[0]["severity"] == "medium"
 
+    def test_skips_seed_files(self):
+        """Seed files use console.log for progress and catch-log for graceful seeding."""
+        content = "\n".join([f"console.log('seeding item {i}')" for i in range(20)])
+        content += "\ntry { await db.insert(data) } catch (e) { console.log(e) }"
+        for seed_path in ["prisma/seed.js", "prisma/seed.ts", "seeds/users.ts", "db/seed-data.js"]:
+            ext = "." + seed_path.split(".")[-1]
+            lang = "typescript" if ext in (".ts",) else "javascript"
+            file = ScannedFile(
+                path=seed_path, extension=ext, language=lang,
+                loc=len(content.splitlines()), content=content, is_test=False,
+            )
+            findings = analyze_error_handling([file])
+            assert len(findings) == 0, f"Should skip {seed_path}, got {findings}"
+
     def test_ignores_catch_inside_string_literal(self):
         """Pattern matches inside string literals should be ignored."""
         content = '"Searching for error handling (found: catch(e) {})..."'
         file = _make_file("messages.ts", content)
         findings = analyze_error_handling([file])
         assert len(findings) == 0
+
+    def test_skips_docs_api_assets_empty_catch(self):
+        """Generated doc-tool JS assets (TypeDoc, JSDoc) shouldn't be flagged."""
+        content = "!function(){try{foo()}catch(e){}}();"
+        file = _make_file("docs/api/assets/js/main.js", content, ext=".js")
+        findings = analyze_error_handling([file])
+        assert len(findings) == 0
+
+    def test_skips_docs_includes_console_log(self):
+        """Documentation example/include files use console.log as demos."""
+        content = "\n".join([f"console.log('example {i}')" for i in range(15)])
+        file = _make_file("docs/_includes/projects/demo/my-element.js", content, ext=".js")
+        findings = analyze_error_handling([file])
+        density_findings = [f for f in findings if "console.log density" in f["issue"].lower()]
+        assert len(density_findings) == 0
 
 
 class TestTestCoverage:
@@ -569,6 +598,43 @@ def main():
         nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
         # 3 levels of control flow (for > if > if), not 5 from raw indent
         assert len(nesting_findings) == 0
+
+
+    def test_skips_html_files_for_god_file(self):
+        """HTML files are markup, not code - shouldn't be flagged as god files."""
+        content = "\n".join([f"<div>line {i}</div>" for i in range(1500)])
+        file = ScannedFile(
+            path="docs/api/classes/litelement.html", extension=".html", language="html",
+            loc=len(content.splitlines()), content=content, is_test=False,
+        )
+        findings = analyze_code_structure([file])
+        god_findings = [f for f in findings if "large" in f["issue"].lower()]
+        assert len(god_findings) == 0
+
+    def test_skips_html_files_for_nesting(self):
+        """HTML files shouldn't be analyzed for nesting depth."""
+        content = "if (a) {\n  if (b) {\n    if (c) {\n      if (d) {\n        if (e) {\n          x();\n        }\n      }\n    }\n  }\n}"
+        file = ScannedFile(
+            path="docs/api/assets/js/page.html", extension=".html", language="html",
+            loc=len(content.splitlines()), content=content, is_test=False,
+        )
+        findings = analyze_code_structure([file])
+        nesting_findings = [f for f in findings if "nest" in f["issue"].lower()]
+        assert len(nesting_findings) == 0
+
+    def test_skips_django_urls_duplicates(self):
+        """Django urls.py files duplicated across apps are a framework convention."""
+        shared_content = "from django.urls import path\nurlpatterns = [\n    path('api/', include('app.urls')),\n]"
+        files = [
+            ScannedFile(
+                path=f"app_dir/{app}/urls.py", extension=".py", language="python",
+                loc=3, content=shared_content, is_test=False,
+            )
+            for app in ["module", "user", "auth", "api"]
+        ]
+        findings = analyze_code_structure(files)
+        dup_findings = [f for f in findings if "similar names" in f["issue"].lower()]
+        assert len(dup_findings) == 0
 
 
 class TestDependencies:

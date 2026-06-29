@@ -2,7 +2,7 @@ import { getInsights } from '@/lib/insights'
 import type { Metadata } from 'next'
 import type { LetterGrade } from '@/types/analysis'
 
-export const revalidate = 300 // refresh every 5 minutes
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'Class Performance — IsItSlop',
